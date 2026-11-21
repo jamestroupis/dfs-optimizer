@@ -930,21 +930,38 @@ function loadPool() {
   } catch { return []; }
 }
 function savePool(list) {
-  try { localStorage.setItem(poolKey(), JSON.stringify(list.slice(-1000))); return true; } catch { return false; }
+  try { localStorage.setItem(poolKey(), JSON.stringify(list)); return true; } catch { return false; }
+}
+// How many lineups of each type (cash-built, tournament-built) to keep. Only the highest projections survive.
+function keepCount() {
+  try { const n = Number(localStorage.getItem('dfs-optimizer:keep')); return n >= 1 && n <= 1000 ? Math.floor(n) : 150; } catch { return 150; }
+}
+function setKeepCount(n) { try { localStorage.setItem('dfs-optimizer:keep', String(n)); } catch {} }
+const poolValue = ids => usable(ids) ? describe(ids).projection : -1;
+// Keep only the best `keepCount()` lineups of each type, ranked on today's projections.
+function trimPool(list) {
+  const keep = keepCount(), out = [];
+  for (const kind of ['cash', 'gpp']) {
+    out.push(...list.filter(item => (item.kind === 'cash' ? 'cash' : 'gpp') === kind)
+      .map(item => ({item, value: poolValue(item.ids)})).sort((a, b) => b.value - a.value).slice(0, keep).map(row => row.item));
+  }
+  return out;
 }
 function addToPool(lineups, kind) {
-  const list = loadPool();
-  const seen = new Set(list.map(item => lineupKey(item.ids)));
-  let added = 0;
+  const before = loadPool();
+  const seen = new Set(before.map(item => lineupKey(item.ids)));
+  const fresh = [];
   for (const ids of lineups) {
     const key = lineupKey(ids);
     if (seen.has(key)) continue;
     seen.add(key);
-    list.push({ids, kind});
-    added++;
+    fresh.push({ids, kind});
   }
-  savePool(list);
-  return {added, total: list.length};
+  const after = trimPool([...before, ...fresh]);
+  savePool(after);
+  const kept = new Set(after.map(item => lineupKey(item.ids)));
+  return {added: fresh.filter(item => kept.has(lineupKey(item.ids))).length, offered: fresh.length, total: after.length,
+    bumped: before.filter(item => !kept.has(lineupKey(item.ids))).length};
 }
 // A saved lineup is usable when every player is still in the pool, projected, not ruled out, and under the cap.
 function usable(ids) {

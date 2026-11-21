@@ -358,8 +358,9 @@ td.sum{white-space:normal;min-width:260px}
     </section>
 
     <section class="view" id="view-saved" role="tabpanel" aria-labelledby="tab-saved" hidden>
-      <p class="level"><b>Every lineup you build is saved here, on this device.</b> <a href="lineup-setup/">Lineup Setup</a> reads this list, picks your best cash lineup, and spreads the rest across your tournament entries. Remove anything you would not want played.</p>
-      <div class="bar"><span class="small muted" id="savedLine"></span><span class="grow"></span>
+      <p class="level"><b>Keep building. Only your best lineups stay.</b> Every build is compared with what is already here, and the highest projections are kept, on this device. Cash builds and tournament builds are ranked separately, so stacked tournament lineups are not pushed out by unstacked cash ones. <a href="lineup-setup/">Lineup Setup</a> reads this list.</p>
+      <div class="bar"><label class="small" for="keepBest">Keep the best</label><input id="keepBest" type="number" min="1" max="1000" step="1" style="width:80px"><span class="small">of each type</span>
+        <span class="small muted" id="savedLine"></span><span class="grow"></span>
         <a class="btn primary" href="lineup-setup/">Go to Lineup Setup</a><button class="btn quiet" id="clearSaved" type="button">Clear all</button></div>
       <div class="scroll"><table>
         <thead><tr><th scope="col" class="r">Proj</th><th scope="col">Lineup</th><th scope="col">Shape</th><th scope="col" class="r">Salary</th><th scope="col">Built as</th><th scope="col"></th></tr></thead>
@@ -1002,21 +1003,38 @@ function loadPool() {
   } catch { return []; }
 }
 function savePool(list) {
-  try { localStorage.setItem(poolKey(), JSON.stringify(list.slice(-1000))); return true; } catch { return false; }
+  try { localStorage.setItem(poolKey(), JSON.stringify(list)); return true; } catch { return false; }
+}
+// How many lineups of each type (cash-built, tournament-built) to keep. Only the highest projections survive.
+function keepCount() {
+  try { const n = Number(localStorage.getItem('dfs-optimizer:keep')); return n >= 1 && n <= 1000 ? Math.floor(n) : 150; } catch { return 150; }
+}
+function setKeepCount(n) { try { localStorage.setItem('dfs-optimizer:keep', String(n)); } catch {} }
+const poolValue = ids => usable(ids) ? describe(ids).projection : -1;
+// Keep only the best `keepCount()` lineups of each type, ranked on today's projections.
+function trimPool(list) {
+  const keep = keepCount(), out = [];
+  for (const kind of ['cash', 'gpp']) {
+    out.push(...list.filter(item => (item.kind === 'cash' ? 'cash' : 'gpp') === kind)
+      .map(item => ({item, value: poolValue(item.ids)})).sort((a, b) => b.value - a.value).slice(0, keep).map(row => row.item));
+  }
+  return out;
 }
 function addToPool(lineups, kind) {
-  const list = loadPool();
-  const seen = new Set(list.map(item => lineupKey(item.ids)));
-  let added = 0;
+  const before = loadPool();
+  const seen = new Set(before.map(item => lineupKey(item.ids)));
+  const fresh = [];
   for (const ids of lineups) {
     const key = lineupKey(ids);
     if (seen.has(key)) continue;
     seen.add(key);
-    list.push({ids, kind});
-    added++;
+    fresh.push({ids, kind});
   }
-  savePool(list);
-  return {added, total: list.length};
+  const after = trimPool([...before, ...fresh]);
+  savePool(after);
+  const kept = new Set(after.map(item => lineupKey(item.ids)));
+  return {added: fresh.filter(item => kept.has(lineupKey(item.ids))).length, offered: fresh.length, total: after.length,
+    bumped: before.filter(item => !kept.has(lineupKey(item.ids))).length};
 }
 // A saved lineup is usable when every player is still in the pool, projected, not ruled out, and under the cap.
 function usable(ids) {
@@ -1325,7 +1343,7 @@ function finish(data, rules) {
   }
   if (n) {
     const saved = addToPool(results.map(r => r.ids), preset.id);
-    $('buildStatus').textContent += ' ' + (saved.added ? saved.added + ' new saved for Lineup Setup.' : 'All were already saved.');
+    $('buildStatus').textContent += ' ' + (saved.added ? saved.added + ' made your saved best' + (saved.bumped ? ', replacing ' + saved.bumped + ' lower ones.' : '.') : saved.offered ? 'None beat the lineups you already have saved.' : 'All were already saved.');
   }
   renderLineups();
   renderSaved();
@@ -1397,7 +1415,9 @@ function renderSaved() {
   const rows = list.map((item, index) => ({item, index, f: usable(item.ids) ? describe(item.ids) : null}))
     .sort((a, b) => (b.f ? b.f.projection : -1) - (a.f ? a.f.projection : -1));
   const stale = rows.filter(row => !row.f).length;
-  $('savedLine').textContent = list.length ? list.length + ' saved' + (stale ? ' · ' + stale + ' no longer usable (a player is out, unprojected or missing)' : '') : '';
+  $('keepBest').value = keepCount();
+  const nCash = list.filter(item => item.kind === 'cash').length;
+  $('savedLine').textContent = list.length ? '· ' + (list.length - nCash) + ' tournament, ' + nCash + ' cash' + (stale ? ' · ' + stale + ' no longer usable (a player is out, unprojected or missing)' : '') : '';
   $('clearSaved').disabled = !list.length;
   $('savedRows').innerHTML = rows.map(({item, index, f}) => f ?
     '<tr><td class="r"><b>' + f.projection.toFixed(1) + '</b></td><td class="sum">' + f.line.map(p => esc(p.name)).join(', ') + '</td><td>' + esc(f.shape) + '</td><td class="r">' + money(f.salary) + '</td><td><span class="kind">' + (item.kind === 'cash' ? 'Cash' : 'Tournament') + '</span></td><td><button class="linebtn" type="button" data-remove="' + index + '">Remove</button></td></tr>' :
@@ -1412,6 +1432,12 @@ $('savedRows').addEventListener('click', event => {
   savePool(list);
   renderSaved();
 });
+$('keepBest').onchange = event => {
+  if (!event.target.checkValidity() || event.target.value === '') { event.target.value = keepCount(); return; }
+  setKeepCount(Number(event.target.value));
+  savePool(trimPool(loadPool()));
+  renderSaved();
+};
 $('clearSaved').onclick = () => { savePool([]); renderSaved(); toast('Saved lineups cleared.'); };
 
 /* --- publishing a new slate (owner) --- */
