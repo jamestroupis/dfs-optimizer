@@ -242,6 +242,21 @@ tr.detail table td{border:0;padding:3px 10px;font-size:13px}
 .linebtn{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
 .linebtn:hover{text-decoration:underline}
 td.sum{white-space:normal;min-width:260px}
+
+.drop{display:grid;gap:6px;justify-items:center;text-align:center;border:2px dashed var(--line);border-radius:12px;padding:34px 20px;cursor:pointer;background:var(--sunk)}
+.drop strong{font:700 22px/1.15 var(--display);letter-spacing:.03em;text-transform:uppercase}
+.drop span{color:var(--muted);font-size:14px;max-width:46ch}
+.drop:hover,.drop.over{border-color:var(--accent)}
+.drop.done{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}
+.ticks{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.ticks li{padding-left:28px;position:relative}
+.ticks li::before{position:absolute;left:0;top:0;font-weight:700;width:20px;text-align:center}
+.ticks li.ok::before{content:"\2713";color:var(--accent)}
+.ticks li.no::before{content:"!";color:var(--danger)}
+.ticks li.wait::before{content:"\2022";color:var(--muted)}
+.ticks li.no{color:var(--danger)}
+.ticks li.no a{color:inherit}
+#notes{width:100%;margin-top:6px;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--surface);color:var(--ink);font:inherit;resize:vertical}
 </style>
 </head>
 <body>
@@ -381,7 +396,7 @@ td.sum{white-space:normal;min-width:260px}
     <dt>Is anything uploaded?</dt><dd>No. The optimizer runs on your device. Your projections and lineups stay in your browser.</dd>
     <dt>Which contests does it support?</dt><dd>DraftKings NFL Classic: one quarterback, two running backs, three wide receivers, one tight end, one flex and one defense under a $50,000 salary cap.</dd>
     <dt>How does it choose lineups?</dt><dd>It ranks complete nine-player lineups by total projected points, less any ownership lean you set. It does not estimate floors, ceilings or win odds, because point projections alone do not support them.</dd>
-    <dt>How do I get lineups into my DraftKings contests?</dt><dd>Use <a href="lineup-setup/">Lineup Setup</a>. It reads your DraftKings entries file, suggests an approach for each contest, fills every entry and gives you a file to upload. Your projections, locks and limits from this page carry over.</dd>
+    <dt>How do I get lineups into my DraftKings contests?</dt><dd>Use <a href="lineup-setup/">Lineup Setup</a>. Add your DraftKings entries file and it combines your contests, the lineups you built here, and a playbook of instructions into one document to hand to an AI, which sends back your upload file.</dd>
   </dl>
 </section>
 <footer class="owner" id="owner" hidden><details class="panel" open><summary>Publish a new slate (site owner)</summary>
