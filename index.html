@@ -316,7 +316,7 @@ td.sum{white-space:normal;min-width:260px}
 
     <section class="view" id="view-players" role="tabpanel" aria-labelledby="tab-players">
       <div class="files">
-        <label class="btn" for="dkFile">Load DraftKings salaries CSV</label><input class="vh" id="dkFile" type="file" accept=".csv,text/csv">
+        <label class="btn" for="dkFile" id="dkLabel" hidden>Load DraftKings salaries CSV</label><input class="vh" id="dkFile" type="file" accept=".csv,text/csv">
         <label class="btn" for="projFile">Load my projections CSV</label><input class="vh" id="projFile" type="file" accept=".csv,text/csv">
         <button class="btn quiet" id="saveProj" type="button">Download projections</button>
         <button class="btn quiet" id="copyProj" type="button">Copy</button>
@@ -1459,6 +1459,7 @@ $('clearSaved').onclick = () => { savePool([]); renderSaved(); toast('Saved line
 function showOwner() {
   if (location.hash !== '#publish') return;
   $('owner').hidden = false;
+  $('dkLabel').hidden = false;
   $('slateName').value = slate.name;
 }
 window.addEventListener('hashchange', showOwner);
