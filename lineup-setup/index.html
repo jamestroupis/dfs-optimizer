@@ -956,7 +956,7 @@ function savePool(list) {
 }
 // How many lineups of each type (cash-built, tournament-built) to keep. Only the highest projections survive.
 function keepCount() {
-  try { const n = Number(localStorage.getItem('dfs-optimizer:keep')); return n >= 1 && n <= 1000 ? Math.floor(n) : 150; } catch { return 150; }
+  try { const n = Number(localStorage.getItem('dfs-optimizer:keep')); return n >= 1 && n <= 1000 ? Math.floor(n) : 1000; } catch { return 1000; }
 }
 function setKeepCount(n) { try { localStorage.setItem('dfs-optimizer:keep', String(n)); } catch {} }
 const poolValue = ids => usable(ids) ? describe(ids).projection : -1;
