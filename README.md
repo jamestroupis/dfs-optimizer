@@ -1,5 +1,7 @@
-# NFL DFS Optimizer & Lineup Setup
+# NFL DFS Optimizer and Lineup Setup
 
-Single-page DraftKings NFL Classic optimizer served at https://optimizer.jamestroupis.com/.
+Served at https://optimizer.jamestroupis.com/.
 
-To update the slate or ship a fix, replace `index.html`.
+- `index.html`: the Optimizer (sandbox).
+- `lineup-setup/index.html`: Lineup Setup (fills DraftKings entries).
+- `slate.json`: this week's salaries and starting projections, read by both pages. Replace it to update the slate.

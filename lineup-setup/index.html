@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DraftKings Lineup Setup | Fill Your NFL DFS Entries</title>
+<meta name="description" content="Upload your DraftKings NFL entries CSV and get every contest filled: one best cash lineup across your cash games, your tournament lineups spread across the rest, checked and ready to upload.">
+<meta property="og:title" content="DraftKings Lineup Setup for NFL DFS">
+<meta property="og:description" content="Upload your DraftKings entries file. Get a suggested approach per contest and a filled, checked upload file. Runs in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://optimizer.jamestroupis.com/lineup-setup/">
+<link rel="canonical" href="https://optimizer.jamestroupis.com/lineup-setup/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a dark scoreboard band on top, a sticky rules column on the left, and one tabbed work area (players, lineups, entries). */
+:root{
+  --bg:#f1f3ee; --surface:#ffffff; --sunk:#f6f8f4; --ink:#14211c; --muted:#5b6b63; --line:#d7ded8;
+  --accent:#0f6b47; --accent-ink:#ffffff; --accent-soft:#e1efe7; --mark:#b46f00; --mark-soft:#fbefd6; --danger:#b3392f;
+  --band:#10271f; --band-ink:#eef4ef; --band-muted:#a9c0b3; --chalk:#d9f27a;
+  --qb:#c2413a; --rb:#17805a; --wr:#2c69c4; --te:#b46f00; --dst:#6a5cb8;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1613; --surface:#16201c; --sunk:#111a17; --ink:#e6eeea; --muted:#98aaa1; --line:#2a3832;
+    --accent:#43b983; --accent-ink:#06130d; --accent-soft:#193126; --mark:#e3a53a; --mark-soft:#33290f; --danger:#ef7b6f;
+    --band:#0a110f; --band-ink:#eef4ef; --band-muted:#8fa69a; --chalk:#d9f27a;
+    --qb:#ef7b72; --rb:#4cc391; --wr:#74a6f2; --te:#e3a53a; --dst:#a79bf0;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1613; --surface:#16201c; --sunk:#111a17; --ink:#e6eeea; --muted:#98aaa1; --line:#2a3832;
+  --accent:#43b983; --accent-ink:#06130d; --accent-soft:#193126; --mark:#e3a53a; --mark-soft:#33290f; --danger:#ef7b6f;
+  --band:#0a110f; --band-ink:#eef4ef; --band-muted:#8fa69a; --chalk:#d9f27a;
+  --qb:#ef7b72; --rb:#4cc391; --wr:#74a6f2; --te:#e3a53a; --dst:#a79bf0;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+h1,h2,h3,p{margin:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.band{background:var(--band);color:var(--band-ink);border-bottom:4px solid var(--chalk)}
+.band-in{max-width:1320px;margin:auto;padding:18px 20px 16px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:flex-end;justify-content:space-between}
+.brand{font:700 13px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--chalk)}
+h1{font:700 clamp(30px,5vw,44px)/1 var(--display);letter-spacing:.005em;text-transform:uppercase;margin-top:6px;text-wrap:balance}
+.slate{color:var(--band-muted);margin-top:6px}
+.private{color:var(--band-muted);font-size:13.5px;max-width:34ch;text-align:right}
+.private strong{color:var(--band-ink);font-weight:600;display:block}
+
+.shell{max-width:1320px;margin:auto;padding:20px;display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.rules{position:sticky;top:12px;padding:16px 16px 0;display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 24px);overflow:auto}
+.go-wrap{position:sticky;bottom:0;background:var(--surface);padding:12px 0 14px;border-top:1px solid var(--line);display:grid;gap:8px}
+h2{font:700 20px/1.1 var(--display);text-transform:uppercase;letter-spacing:.03em}
+.kicker{font:600 12px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+.seg{display:grid;grid-template-columns:repeat(2,1fr);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:6px}
+.seg button{border:0;border-right:1px solid var(--line);background:var(--surface);padding:10px 0;font:600 15px/1 var(--display);letter-spacing:.04em;min-width:0;text-transform:uppercase;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--sunk)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.note{font-size:13px;color:var(--muted);margin-top:8px;min-height:3.9em}
+.field select{max-width:150px}
+
+.field{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.field label,.field .label{font-weight:600}
+.field .hint{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.field input[type=number]{width:86px;text-align:right}
+input[type=number],input[type=search],select{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:6px 8px}
+input[type=number]{font-variant-numeric:tabular-nums}
+.switch{appearance:none;-webkit-appearance:none;width:40px;height:24px;border-radius:12px;background:var(--line);position:relative;cursor:pointer;margin:0;border:0;padding:0}
+.switch::before{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--surface);transition:left .12s}
+.switch:checked{background:var(--accent)}
+.switch:checked::before{left:19px}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:7px 12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.go{width:100%;padding:13px;font:700 19px/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.btn.quiet{border-color:transparent;color:var(--muted);padding:7px 8px}
+.btn.quiet:hover:not(:disabled){color:var(--ink);border-color:var(--line)}
+.progress{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+.status{font-size:13.5px;color:var(--muted);min-height:1.4em}
+.go-wrap .status:empty{display:none}
+.status.warn{color:var(--mark)}
+.status.bad{color:var(--danger)}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);padding:0 12px}
+.tabs button{border:0;background:none;padding:14px 12px 11px;font:700 17px/1 var(--display);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs .count{font:600 12px/1 var(--body);background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:2px 7px;margin-left:6px;letter-spacing:0;vertical-align:2px}
+.view{padding:16px}
+.view[hidden]{display:none}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar .grow{flex:1 1 180px}
+.bar input[type=search]{width:100%}
+.chips{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.chips button{border:0;border-right:1px solid var(--line);background:var(--surface);padding:7px 10px;font-weight:600;font-size:13px;cursor:pointer}
+.chips button:last-child{border-right:0}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.check{display:flex;gap:6px;align-items:center;font-size:13.5px;cursor:pointer}
+.files{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.files .status{flex:1 1 100%;min-height:0}
+.files .status:empty{display:none}
+
+.scroll{overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:12px}
+.pool{max-height:min(68vh,760px)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+th{position:sticky;top:0;z-index:1;background:var(--sunk);font:600 12px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+th button{all:unset;cursor:pointer;font:inherit;letter-spacing:inherit;color:inherit}
+th button:hover,th[aria-sort] button{color:var(--ink)}
+th[aria-sort="descending"] button::after{content:" \25BE"}
+th[aria-sort="ascending"] button::after{content:" \25B4"}
+.r{text-align:right}
+td.who strong{font-weight:600;display:block}
+td.who span{font-size:12.5px;color:var(--muted)}
+.pos{display:inline-block;min-width:34px;text-align:center;font:700 12px/1 var(--display);letter-spacing:.06em;padding:4px 5px;border-radius:4px;border:1px solid currentColor}
+.pos.QB{color:var(--qb)}.pos.RB{color:var(--rb)}.pos.WR{color:var(--wr)}.pos.TE{color:var(--te)}.pos.DST{color:var(--dst)}.pos.FLEX{color:var(--muted)}
+td input[type=number]{width:70px;text-align:right;padding:4px 6px}
+td input.edited{border-color:var(--accent);background:var(--accent-soft)}
+.act{display:flex;gap:4px}
+.act button{border:1px solid var(--line);background:var(--surface);border-radius:5px;padding:3px 7px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.act button:hover{color:var(--ink);border-color:var(--muted)}
+.act button[aria-pressed="true"].lock{background:var(--mark);border-color:var(--mark);color:#fff}
+.act button[aria-pressed="true"].out{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+tr.is-lock td{background:var(--mark-soft)}
+tr.is-out td.who,tr.is-out td.dim{opacity:.45;text-decoration:line-through}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+
+.summary{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:baseline;margin-bottom:10px}
+.summary b{font:700 22px/1 var(--display);letter-spacing:.02em}
+.expo{border:1px solid var(--line);border-radius:8px;margin:12px 0;background:var(--sunk)}
+.expo summary{cursor:pointer;padding:10px 12px;font-weight:600}
+.expo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 22px;padding:2px 12px 12px}
+.expo-row{display:grid;grid-template-columns:38px 1fr 44px;gap:8px;align-items:center;font-size:13.5px}
+.expo-row .nm{position:relative;padding:3px 6px;border-radius:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.expo-row .nm i{position:absolute;inset:0 auto 0 0;background:var(--accent-soft);z-index:0}
+.expo-row .nm span{position:relative}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin-top:12px}
+.card{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+.card header{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;background:var(--sunk);border-bottom:1px solid var(--line)}
+.card .n{font:700 15px/1 var(--display);color:var(--muted);letter-spacing:.05em}
+.card .pts{font:700 26px/1 var(--display)}
+.card .pts small{font:500 12.5px/1 var(--body);color:var(--muted);margin-left:6px}
+.card .meta{text-align:right;font-size:12.5px;color:var(--muted);line-height:1.35}
+.card .meta b{color:var(--ink);font-weight:600;font-size:14px}
+.card table td{padding:5px 8px;font-size:13.5px}
+.card td:first-child{padding-left:12px;width:1%}
+.card td:last-child{padding-right:12px}
+.card .slot{font:700 11.5px/1 var(--display);letter-spacing:.08em;color:var(--muted)}
+.card .nm{white-space:normal}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;border:2px solid var(--accent);vertical-align:1px}
+.dot.full{background:var(--accent)}
+.dot.back{border-color:var(--mark)}
+.flags{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.flag{border:1px solid var(--mark);color:var(--mark);border-radius:10px;padding:1px 8px;font-weight:600}
+.shape{padding:8px 12px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.level{border-left:3px solid var(--accent);background:var(--sunk);padding:8px 12px;font-size:13px;color:var(--muted);border-radius:0 6px 6px 0;margin-bottom:12px;max-width:90ch}
+.expo h3{font:600 12px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 12px}
+.verdict{border:1px solid var(--line);border-radius:8px;margin-top:12px;background:var(--sunk)}
+.verdict summary{cursor:pointer;padding:10px 12px;font-weight:600;display:flex;gap:10px;align-items:center}
+.pill{font:700 12.5px/1 var(--display);letter-spacing:.08em;padding:5px 9px;border-radius:5px;color:#fff;background:var(--accent)}
+.pill.warn{background:var(--mark)}.pill.bad{background:var(--danger)}.pill.idle{background:var(--muted)}
+.checks{list-style:none;margin:0;padding:0 12px 12px;display:grid;gap:5px;font-size:13.5px}
+.checks li{display:grid;grid-template-columns:52px 1fr;gap:8px}
+.checks b{font:700 11.5px/1.6 var(--display);letter-spacing:.08em}
+.checks .pass b{color:var(--accent)}.checks .warn b{color:var(--mark)}.checks .fail b{color:var(--danger)}
+.kind{font:600 11.5px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:3px 5px}
+.legend{font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.howto{max-width:68ch;display:grid;gap:10px}
+.howto ol{margin:0;padding-left:20px;display:grid;gap:4px}
+.cur{max-width:230px;overflow:hidden;text-overflow:ellipsis;color:var(--muted);font-size:13px}
+td select{max-width:250px;padding:4px 6px}
+tr.assigned td{background:var(--accent-soft)}
+.about{max-width:1320px;margin:8px auto 28px;padding:0 20px;display:grid;gap:14px}
+.about h3{font:700 16px/1.2 var(--display);letter-spacing:.03em;text-transform:uppercase;margin-bottom:4px}
+.about p,.about dd{color:var(--muted);max-width:65ch}
+.about-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.about dl{margin:0;display:grid;gap:10px}
+.about dt{font-weight:600}
+.about dd{margin:2px 0 0}
+.owner{max-width:1320px;margin:0 auto 28px;padding:0 20px}
+.owner details{padding:14px 16px}
+.owner summary{cursor:pointer;font-weight:600}
+.owner .bar{margin-top:12px}
+.owner input[type=text]{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:6px 8px;min-width:240px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 16px;border-radius:8px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .15s;z-index:5;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:940px){
+  .shell{grid-template-columns:1fr;padding:14px 16px}
+  .rules{position:static;max-height:none;overflow:visible}
+  .go-wrap{position:static}
+  .private{text-align:left;max-width:none}
+  .note{min-height:0}
+}
+@media (max-width:520px){
+  .cards{grid-template-columns:1fr}
+  .tabs button{padding:12px 8px 9px;font-size:15px}
+  .view{padding:12px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.nav{display:flex;gap:6px;margin-top:14px}
+.nav a{font:700 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;color:var(--band-muted);padding:9px 14px;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:0}
+.nav a:hover{color:var(--band-ink)}
+.nav a[aria-current="page"]{background:var(--bg);color:var(--ink)}
+.band{border-bottom:0}
+.band-in{padding-bottom:0;align-items:flex-start}
+.stripe{height:4px;background:var(--chalk)}
+.fatal{max-width:700px;margin:60px auto;padding:0 20px;color:var(--danger);font-weight:600}
+.wrap{max-width:1100px;margin:auto;padding:20px;display:grid;gap:18px}
+.step{padding:18px}
+.step > h2{display:flex;gap:10px;align-items:baseline;margin-bottom:10px}
+.step > h2 span{font:700 14px/1 var(--display);color:var(--accent-ink);background:var(--accent);border-radius:50%;width:24px;height:24px;display:inline-grid;place-items:center;letter-spacing:0}
+.plan{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:14px}
+.approach{border:1px solid var(--line);border-radius:9px;padding:14px;background:var(--sunk);display:grid;gap:8px;align-content:start}
+.approach h3{font:700 17px/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase}
+.approach .why{font-size:13px;color:var(--muted)}
+.approach .field{border-top:1px solid var(--line);padding:7px 0}
+.approach .field:first-of-type{border-top:0}
+.approach .field input[type=number]{width:70px}
+.approach .tally{font-size:13px;font-weight:600}
+tr.group td{background:var(--sunk);font-weight:600}
+tr.detail td{background:var(--sunk);padding:0}
+tr.detail table td{border:0;padding:3px 10px;font-size:13px}
+.linebtn{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
+.linebtn:hover{text-decoration:underline}
+td.sum{white-space:normal;min-width:260px}
+</style>
+</head>
+<body>
+<header class="band"><div class="band-in">
+  <div>
+    <div class="brand">NFL · DraftKings Classic</div>
+    <h1>Lineup Setup</h1>
+    <p class="slate">Upload your DraftKings entries. Get a suggested approach for each contest and your whole slate filled in.</p>
+    <p class="slate" id="slateLine"></p>
+    <nav class="nav" aria-label="Tools"><a href="../">Optimizer</a><a href="./" aria-current="page">Lineup Setup</a></nav>
+  </div>
+  <p class="private"><strong>Runs entirely in your browser.</strong>Your DraftKings files and projections never leave this device.</p>
+</div><div class="stripe"></div></header>
+
+<div class="wrap" id="app">
+  <section class="panel step">
+    <h2><span>1</span>Your entries</h2>
+    <p class="muted" style="max-width:75ch">On DraftKings, open <b>Lineups</b>, choose <b>Edit entries</b>, and download the CSV for this slate. Load that file here.</p>
+    <div class="bar" style="margin-top:12px">
+      <label class="btn primary" for="dkFile">Load my entries CSV</label><input class="vh" id="dkFile" type="file" accept=".csv,text/csv">
+      <label class="btn" for="projFile">Load my projections CSV</label><input class="vh" id="projFile" type="file" accept=".csv,text/csv">
+    </div>
+    <p class="status" id="fileStatus" role="status" style="margin-top:8px"></p>
+    <p class="small muted" id="carryLine" style="margin-top:6px"></p>
+  </section>
+
+  <section class="panel step" id="planStep" hidden>
+    <h2><span>2</span>Suggested approach</h2>
+    <div class="summary" id="entrySummary"></div>
+    <p class="small muted" style="max-width:85ch">Each contest is sorted by its name, entry fee and prize pool. Field size is a rough floor (prize pool divided by entry fee), not a count from DraftKings. Change any contest's approach if the suggestion is wrong.</p>
+    <div class="plan" id="approaches"></div>
+    <details class="verdict" open><summary>Your contests</summary><div class="scroll" style="margin:0 12px 12px;max-height:340px"><table>
+      <thead><tr><th scope="col">Contest</th><th scope="col" class="r">Fee</th><th scope="col" class="r">Entries</th><th scope="col" class="r">Limit</th><th scope="col" class="r">Field, at least</th><th scope="col">Approach</th></tr></thead>
+      <tbody id="contestRows"></tbody></table></div></details>
+    <div style="display:grid;gap:8px;margin-top:14px">
+      <label class="check"><input id="keep" type="checkbox" checked> <span>Leave entries that already have a lineup alone (<span id="keepCount">0</span>)</span></label>
+      <label class="check"><input id="extra" type="checkbox" checked> <span>Build extra lineups for me when my saved ones run short</span></label>
+      <label class="check"><input id="spread" type="checkbox" checked> <span>Spread different lineups across tournaments before reusing any</span></label>
+    </div>
+    <div style="display:grid;gap:8px;margin-top:14px;max-width:420px">
+      <button class="btn primary go" id="build" type="button">Build my slate</button>
+      <div class="progress" id="progress" hidden><i></i></div>
+      <p class="status" id="buildStatus" role="status"></p>
+    </div>
+  </section>
+
+  <section class="panel step" id="slateStep" hidden>
+    <h2><span>3</span>Your slate</h2>
+    <p class="level"><b>Model level D: point projections only.</b> Lineups are ranked by total projected points, less any ownership lean you set. No cash odds or win odds are shown, because nothing loaded here supports them.</p>
+    <div class="summary" id="slateSummary"></div>
+    <div id="cashBox"></div>
+    <details class="verdict" id="verdictBox" open><summary><span class="pill idle" id="verdict">NOT CHECKED</span><span id="verdictLine"></span></summary><ul class="checks" id="checks"></ul></details>
+    <div class="bar" style="margin-top:12px">
+      <button class="btn primary" id="saveEntries" type="button" disabled>Download entries CSV</button>
+      <button class="btn" id="copyEntries" type="button" disabled>Copy CSV</button>
+      <span class="small muted">Upload it on DraftKings under Lineups, Edit entries, Upload CSV. This page cannot confirm DraftKings accepted it.</span>
+    </div>
+    <details class="expo"><summary>Tournament exposure, counted by entry</summary>
+      <h3>Quarterbacks</h3><div class="expo-grid" id="expoQb"></div>
+      <h3>Games with 3 or more of your players</h3><div class="expo-grid" id="expoGame"></div>
+      <h3>Players</h3><div class="expo-grid" id="expo"></div></details>
+    <div class="legend" style="margin-top:12px"><span><i class="dot full"></i>QB stack</span><span><i class="dot back"></i>Bring-back</span><span>FLEX holds the latest kickoff the roster allows.</span></div>
+    <div class="scroll"><table>
+      <thead><tr><th scope="col">Entry</th><th scope="col" class="r">Proj</th><th scope="col">Lineup</th><th scope="col">Source</th><th scope="col"></th></tr></thead>
+      <tbody id="entryRows"></tbody></table></div>
+  </section>
+</div>
+
+<section class="about">
+  <h2>How Lineup Setup works</h2>
+  <div class="about-grid">
+    <div><h3>It reads your contests</h3><p>From your DraftKings entries file it sorts each contest into cash, small, medium or massive tournament, using the contest name, entry fee and prize pool, and suggests an approach for each.</p></div>
+    <div><h3>It uses your lineups first</h3><p>Lineups you built in the <a href="../">Optimizer</a> on this device are used first. If you have none, or not enough for a big contest, it builds the rest with the same optimizer.</p></div>
+    <div><h3>It fills and checks the slate</h3><p>One best cash lineup goes in every cash entry. Tournament lineups are spread across the rest with no repeats inside a contest. Every export is checked and read back before download.</p></div>
+  </div>
+</section>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="module">
+/* ---------- Pure logic: CSV parsing, matching, optimizer, exports ---------- */
+const SLOTS = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'DST'];
+const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'DST'];
+const ENTRY_HEAD = ['Entry ID', 'Contest Name', 'Contest ID', 'Entry Fee'];
+
+function parseCsv(source) {
+  const rows = [];
+  let row = [], value = '', quoted = false;
+  const input = String(source).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+  for (let i = 0; i < input.length; i++) {
+    const c = input[i];
+    if (c === '"' && quoted && input[i + 1] === '"') { value += '"'; i++; }
+    else if (c === '"') quoted = !quoted;
+    else if (!quoted && (c === ',' || c === '\n')) {
+      row.push(value.trim());
+      value = '';
+      if (c === '\n') { rows.push(row); row = []; }
+    } else value += c;
+  }
+  if (row.length || value) rows.push([...row, value.trim()]);
+  return rows.filter(fields => fields.some(Boolean));
+}
+
+function csvCell(value) {
+  const text = String(value ?? '');
+  return /[",\n]/.test(text) ? '"' + text.replaceAll('"', '""') + '"' : text;
+}
+const csvLine = values => values.map(csvCell).join(',');
+
+// "TB@DET 11/22/2026 01:00PM ET" -> minutes since epoch (0 when unknown) and a short label.
+function kickoff(info) {
+  const m = /(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})\s*(AM|PM)/i.exec(info || '');
+  if (!m) return {start: 0, when: ''};
+  let hour = Number(m[4]) % 12;
+  if (/pm/i.test(m[6])) hour += 12;
+  const ms = Date.UTC(Number(m[3]), Number(m[1]) - 1, Number(m[2]), hour, Number(m[5]));
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(ms).getUTCDay()];
+  return {start: ms / 60000, when: day + ' ' + Number(m[4]) + ':' + m[5] + ' ' + m[6].toUpperCase()};
+}
+
+// Reads a DraftKings salaries CSV or an Edit Entries CSV (which carries the same player list).
+function readDraftKings(source) {
+  const rows = parseCsv(source);
+  const need = ['Position', 'Name', 'ID', 'Salary', 'Game Info', 'TeamAbbrev'];
+  const headerIndex = rows.findIndex(row => need.every(key => row.includes(key)));
+  if (headerIndex < 0) throw Error('This file has no DraftKings player list. Use the salaries CSV or the Edit Entries CSV from an NFL Classic contest.');
+  const header = rows[headerIndex];
+  const col = Object.fromEntries(need.map(key => [key, header.indexOf(key)]));
+  const players = [], seen = new Set();
+  let skipped = 0;
+  for (const row of rows.slice(headerIndex + 1)) {
+    const pos = row[col.Position] || '';
+    if (!pos) continue;
+    const id = row[col.ID] || '', name = row[col.Name] || '', team = row[col.TeamAbbrev] || '';
+    const salary = Number(row[col.Salary]);
+    const info = row[col['Game Info']] || '';
+    const game = info.split(/\s/)[0];
+    const teams = game.split('@');
+    if (!POSITIONS.includes(pos) || !/^\d+$/.test(id) || seen.has(id) || !name || !(salary > 0) ||
+        teams.length !== 2 || !teams.includes(team)) { skipped++; continue; }
+    seen.add(id);
+    players.push({id, name: name.trim(), pos, team, opp: teams[0] === team ? teams[1] : teams[0], home: teams[1] === team,
+      game, ...kickoff(info), salary, projection: '', ownership: null, action: ''});
+  }
+  if (!players.length) throw Error('No usable players found. Games that have already started are removed from DraftKings files.');
+
+  let entries = null;
+  const entryIndex = rows.findIndex(row => ENTRY_HEAD.every((key, i) => row[i] === key));
+  if (entryIndex >= 0) {
+    if (!SLOTS.every((slot, i) => rows[entryIndex][4 + i] === slot)) {
+      throw Error('These entries are not NFL Classic lineups (QB, RB, RB, WR, WR, WR, TE, FLEX, DST).');
+    }
+    entries = [];
+    const ids = new Set();
+    for (const row of rows.slice(entryIndex + 1)) {
+      if (!/^\d+$/.test(row[0] || '') || ids.has(row[0])) continue;
+      ids.add(row[0]);
+      entries.push({id: row[0], contest: row[1] || '', contestId: row[2] || '', fee: row[3] || '',
+        current: SLOTS.map((_, i) => row[4 + i] || '')});
+    }
+    if (!entries.length) entries = null;
+  }
+  return {players, entries, skipped};
+}
+
+const normHeader = text => text.toLowerCase().replace(/[^a-z0-9%]/g, '');
+function readProjections(source) {
+  const [header = [], ...rows] = parseCsv(source);
+  const names = header.map(normHeader);
+  const find = options => names.findIndex(name => options.includes(name));
+  const idCol = find(['id', 'playerid', 'dkid', 'draftkingsid']);
+  const nameCol = find(['name', 'player', 'playername']);
+  const posCol = find(['position', 'pos']);
+  const teamCol = find(['team', 'teamabbrev', 'tm']);
+  const projCol = find(['projpts', 'projection', 'proj', 'fpts', 'points', 'projectedpoints', 'projectedpts', 'fantasypoints']);
+  const ownCol = find(['projown', 'ownership', 'own', 'own%', 'projown%', 'projectedownership', 'ownpct']);
+  if (projCol < 0 || (idCol < 0 && nameCol < 0)) {
+    throw Error('This projections file needs a projection column (ProjPts or Projection) and an ID or Name column.');
+  }
+  const list = [];
+  let bad = 0;
+  for (const row of rows) {
+    const raw = row[projCol];
+    const projection = Number(raw);
+    if (raw === undefined || raw === '' || !Number.isFinite(projection)) { bad++; continue; }
+    const ownText = ownCol >= 0 ? (row[ownCol] || '').replace(/%$/, '') : '';
+    const own = ownText === '' ? null : Number(ownText);
+    list.push({id: idCol >= 0 ? row[idCol] : '', name: nameCol >= 0 ? row[nameCol] : '', pos: posCol >= 0 ? row[posCol] : '',
+      team: teamCol >= 0 ? row[teamCol] : '', projection,
+      ownership: own !== null && Number.isFinite(own) && own >= 0 && own <= 100 ? own : null});
+  }
+  if (!list.length) throw Error('No rows with a numeric projection were found in this file.');
+  return {list, bad};
+}
+
+function nameKey(name) {
+  return String(name).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/\b(jr|sr|ii|iii|iv|v)\b\.?/g, '').replace(/[^a-z]/g, '');
+}
+// Merge projection rows into the pool: by DraftKings ID first, then by name + team (team alone for DST).
+function applyProjections(players, list) {
+  const byId = new Map(players.map(p => [p.id, p]));
+  const byName = new Map();
+  for (const p of players) {
+    const key = p.pos === 'DST' ? 'DST|' + p.team : nameKey(p.name) + '|' + p.team;
+    byName.set(key, byName.has(key) ? null : p);
+  }
+  const updates = new Map();
+  let viaName = 0, unmatched = 0;
+  for (const row of list) {
+    let target = row.id && byId.get(String(row.id));
+    if (!target && row.team) {
+      const isDst = /^(dst|def|d)$/i.test(row.pos || '');
+      target = byName.get(isDst ? 'DST|' + row.team.toUpperCase() : nameKey(row.name) + '|' + row.team.toUpperCase());
+      if (target) viaName++;
+    }
+    if (!target || updates.has(target.id)) { unmatched++; continue; }
+    updates.set(target.id, row);
+  }
+  return {
+    matched: updates.size, viaName, unmatched,
+    players: players.map(p => {
+      const row = updates.get(p.id);
+      return row ? {...p, projection: String(row.projection), ownership: row.ownership ?? p.ownership} : p;
+    })
+  };
+}
+
+/* The optimizer. Self-contained so it can be shipped to a Web Worker with toString().
+   Exact branch-and-bound: each lineup is the best one that satisfies every rule given the lineups before it. */
+function optimize(players, rules, emit) {
+  const POS = ['QB', 'RB', 'WR', 'TE', 'DST'], CAP = 50000, UNIT = 100, BUDGET = CAP / UNIT, BONUS = 1e4;
+  const NODE_LIMIT = rules.nodeLimit || 4e6;
+  const all = [];
+  for (const p of players) {
+    if (p.action === 'out' || p.projection === '' || p.projection == null) continue;
+    const median = Number(p.projection);
+    const lock = p.action === 'lock';
+    if (!Number.isFinite(median) || (median <= 0 && !lock)) continue;
+    // Objective: projected points, less the user's ownership lean (points per 1% of projected ownership).
+    const score = median - (p.ownership || 0) * rules.ownershipWeight;
+    const own = p.cap == null || p.cap === '' ? Infinity : Math.max(1, Math.ceil(rules.count * Number(p.cap) / 100));
+    if (!lock && Number(p.cap) <= 0 && p.cap != null && p.cap !== '') continue;
+    all.push({id: p.id, pos: p.pos, team: p.team, game: p.game, start: p.start || 0, salary: p.salary,
+      median, score, own: p.ownership, lock, key: score + (lock ? BONUS : 0), used: 0, max: own});
+  }
+  const lockCount = all.filter(p => p.lock).length;
+  const maxUse = rules.exposure >= 100 ? Infinity : Math.max(1, Math.ceil(rules.count * rules.exposure / 100));
+  for (const p of all) p.max = p.lock ? Infinity : Math.min(p.max, maxUse);
+  const maxOverlap = 9 - rules.differences;
+  const lineups = [];
+  let limited = false, approximate = 0, variants = null, groups = null;
+
+  const ZERO = new Float64Array(BUDGET + 1);
+  function buffers(slots) {
+    return slots.map((pos, depth) => depth === 0 ? null :
+      Array.from({length: groups[pos].length + 1}, () => new Float64Array(BUDGET + 1)));
+  }
+  // buf[depth][i][budget]: best possible (key + bonus) from slots depth.. using group[i..] within budget.
+  function fill(variant, buf) {
+    const {slots, n} = variant;
+    for (let depth = n - 1; depth >= 1; depth--) {
+      const group = groups[slots[depth]];
+      buf[depth][group.length].fill(-Infinity);
+      for (let i = group.length - 1; i >= 0; i--) {
+        const take = depth + 1 === n ? ZERO : buf[depth + 1][slots[depth] === slots[depth + 1] ? i + 1 : 0];
+        const cost = Math.floor(group[i].salary / UNIT), value = group[i].key + group[i].bonus;
+        const row = buf[depth][i];
+        row.set(buf[depth][i + 1]);
+        for (let budget = cost; budget <= BUDGET; budget++) {
+          const total = value + take[budget - cost];
+          if (total > row[budget]) row[budget] = total;
+        }
+      }
+    }
+  }
+
+  function prepare() {
+    const pool = all.filter(p => p.used < p.max).sort((a, b) => b.key - a.key);
+    for (const p of pool) p.bonus = 0;
+    groups = Object.fromEntries(POS.map(pos => [pos, pool.filter(p => p.pos === pos)]));
+    variants = [];
+    for (const flex of ['RB', 'WR', 'TE']) {
+      const sizes = {QB: 1, RB: 2, WR: 3, TE: 1, DST: 1};
+      sizes[flex]++;
+      if (POS.some(pos => groups[pos].length < sizes[pos] || groups[pos].filter(p => p.lock).length > sizes[pos])) continue;
+      const slots = POS.flatMap(pos => Array(sizes[pos]).fill(pos));
+      const n = slots.length;
+      // top[pos][i][k]: the most salary k players from group[i..] can spend.
+      const top = {};
+      for (const pos of POS) {
+        const group = groups[pos];
+        top[pos] = group.map((_, i) => {
+          const high = group.slice(i).map(p => p.salary).sort((a, b) => b - a).slice(0, sizes[pos]);
+          const sums = [0];
+          for (const s of high) sums.push(sums[sums.length - 1] + s);
+          return sums;
+        });
+        top[pos].push([0]);
+      }
+      const runEnd = slots.map((pos, i) => { let e = i; while (slots[e] === pos) e++; return e; });
+      const laterMax = new Array(n + 1).fill(0);
+      for (let i = n - 1; i >= 0; i--) {
+        if (i === 0 || slots[i - 1] !== slots[i]) laterMax[i] = top[slots[i]][0][sizes[slots[i]]] + laterMax[runEnd[i]];
+      }
+      const variant = {flex, slots, n, top, runEnd, laterMax};
+      variant.plain = buffers(slots);
+      fill(variant, variant.plain);
+      if (rules.stack || rules.bring) { variant.bufA = buffers(slots); variant.bufB = buffers(slots); }
+      variants.push(variant);
+    }
+  }
+
+  const STEPS = [1, 2, 4, 8, 16, 32];
+  prepare();
+  while (lineups.length < rules.count) {
+    const prior = new Map();
+    lineups.forEach((result, index) => {
+      for (const id of result.ids) {
+        if (!prior.has(id)) prior.set(id, []);
+        prior.get(id).push(index);
+      }
+    });
+    const overlaps = new Uint8Array(lineups.length);
+    const none = [];
+    const skill = [...groups.RB, ...groups.WR, ...groups.TE];
+    let best = null, nodes = 0, aborted = false;
+    for (const qb of variants.length ? groups.QB : []) {
+      if (aborted) break;
+      const seenQb = prior.get(qb.id) || none;
+      if (seenQb.some(index => overlaps[index] >= maxOverlap)) continue;
+      const mates = skill.filter(p => p.team === qb.team && p.pos !== 'RB');
+      const opps = skill.filter(p => p.game === qb.game && p.team !== qb.team);
+      if (mates.length < rules.stack || opps.length < rules.bring) continue;
+      const room = Math.floor((CAP - qb.salary) / UNIT);
+      // How many of this quarterback's pass catchers / opponents remain from each point in each position list.
+      const constrained = rules.stack > 0 || rules.bring > 0;
+      const mateLeft = {}, oppLeft = {};
+      if (constrained) {
+        for (const p of mates) p.mate = 1;
+        for (const p of opps) p.opp = 1;
+        for (const pos of ['RB', 'WR', 'TE']) {
+          const group = groups[pos];
+          const m = new Int16Array(group.length + 1), o = new Int16Array(group.length + 1);
+          for (let i = group.length - 1; i >= 0; i--) { m[i] = m[i + 1] + (group[i].mate ? 1 : 0); o[i] = o[i + 1] + (group[i].opp ? 1 : 0); }
+          mateLeft[pos] = m; oppLeft[pos] = o;
+        }
+      }
+      for (const index of seenQb) overlaps[index]++;
+      for (const variant of variants) {
+        if (aborted) break;
+        const {slots, n, top, runEnd, laterMax} = variant;
+        const beats = value => !best || value > best.key + 1e-9;
+        if (!beats(qb.key + variant.plain[1][0][room])) continue;
+        // Tighten the bound for this quarterback: reward his pass catchers (lambda) and opponents (mu),
+        // then subtract what the rules guarantee. Any lambda, mu >= 0 keeps the bound valid.
+        let bound = variant.plain, constant = 0;
+        if (rules.stack || rules.bring) {
+          let current = variant.bufA, trial = variant.bufB;
+          let lambda = 0, mu = 0, root = variant.plain[1][0][room], dead = false;
+          const attempt = (l, m) => {
+            for (const p of mates) p.bonus = l;
+            for (const p of opps) p.bonus = m;
+            fill(variant, trial);
+            const value = trial[1][0][room] - l * rules.stack - m * rules.bring;
+            if (value < root) { root = value; lambda = l; mu = m; [current, trial] = [trial, current]; bound = current; }
+            if (!beats(qb.key + root)) dead = true;
+          };
+          if (rules.stack) for (const step of STEPS) { if (dead) break; const before = root; attempt(step, 0); if (root === before && step > 1) break; }
+          if (rules.bring) for (const step of STEPS) { if (dead) break; const before = root; attempt(lambda, step); if (root === before && step > 1) break; }
+          variant.bufA = current; variant.bufB = trial;
+          for (const p of mates) p.bonus = lambda;
+          for (const p of opps) p.bonus = mu;
+          constant = lambda * rules.stack + mu * rules.bring;
+          if (dead) { for (const p of mates) p.bonus = 0; for (const p of opps) p.bonus = 0; continue; }
+        }
+        const line = [qb];
+        const laterMate = new Int16Array(n + 1), laterOpp = new Int16Array(n + 1);
+        if (constrained) {
+          for (let i = n - 1; i >= 1; i--) {
+            if (slots[i - 1] === slots[i]) continue;
+            const pos = slots[i], size = runEnd[i] - i;
+            laterMate[i] = laterMate[runEnd[i]] + (mateLeft[pos] ? Math.min(size, mateLeft[pos][0]) : 0);
+            laterOpp[i] = laterOpp[runEnd[i]] + (oppLeft[pos] ? Math.min(size, oppLeft[pos][0]) : 0);
+          }
+        }
+        const search = (depth, start, salary, key, lifted, got, back) => {
+          if (aborted) return;
+          if (++nodes > NODE_LIMIT) { aborted = true; return; }
+          if (depth === n) {
+            if (salary < rules.minimum || (best && key <= best.key)) return;
+            let locks = 0, stacked = 0, back = 0, otherGame = false;
+            for (const p of line) {
+              if (p.lock) locks++;
+              if (p.game !== qb.game) otherGame = true;
+              else if (p.team === qb.team) { if (p.pos === 'WR' || p.pos === 'TE') stacked++; }
+              else if (p.pos !== 'DST') back++;
+            }
+            if (locks < lockCount || !otherGame || stacked < rules.stack || back < rules.bring) return;
+            best = {key, line: line.slice(), flex: variant.flex};
+            return;
+          }
+          const pos = slots[depth];
+          const group = groups[pos];
+          if (constrained) {
+            const open = runEnd[depth] - depth;
+            if (got < rules.stack && got + (mateLeft[pos] ? Math.min(open, mateLeft[pos][start]) : 0) + laterMate[runEnd[depth]] < rules.stack) return;
+            if (back < rules.bring && back + (oppLeft[pos] ? Math.min(open, oppLeft[pos][start]) : 0) + laterOpp[runEnd[depth]] < rules.bring) return;
+          }
+          if (rules.minimum > 0) {
+            const sums = top[pos][start], need = runEnd[depth] - depth;
+            if (sums.length <= need || salary + sums[need] + laterMax[runEnd[depth]] < rules.minimum) return;
+          }
+          // Visit children best-first by their upper bound; stop once none can beat the incumbent.
+          const last = depth + 1 === n, nextSame = slots[depth + 1] === pos;
+          const left = Math.floor((CAP - salary) / UNIT);
+          const order = [];
+          for (let i = start; i < group.length; i++) {
+            const player = group[i];
+            const cost = Math.floor(player.salary / UNIT);
+            if (salary + player.salary > CAP) continue;
+            const rest = last ? 0 : bound[depth + 1][nextSame ? i + 1 : 0][left - cost];
+            const upper = lifted + player.key + player.bonus + rest - constant;
+            if (upper === -Infinity || (best && upper <= best.key + 1e-9)) continue;
+            order.push(i, upper);
+          }
+          if (order.length > 2) {
+            const pairs = [];
+            for (let j = 0; j < order.length; j += 2) pairs.push([order[j], order[j + 1]]);
+            pairs.sort((x, y) => y[1] - x[1]);
+            for (let j = 0; j < pairs.length; j++) { order[2 * j] = pairs[j][0]; order[2 * j + 1] = pairs[j][1]; }
+          }
+          for (let j = 0; j < order.length && !aborted; j += 2) {
+            if (best && order[j + 1] <= best.key + 1e-9) break;
+            const i = order[j], player = group[i];
+            const seen = prior.get(player.id) || none;
+            let blocked = false;
+            for (const index of seen) if (overlaps[index] >= maxOverlap) { blocked = true; break; }
+            if (blocked) continue;
+            for (const index of seen) overlaps[index]++;
+            line.push(player);
+            search(depth + 1, nextSame ? i + 1 : 0, salary + player.salary, key + player.key, lifted + player.key + player.bonus, got + (player.mate && pos !== 'RB' ? 1 : 0), back + (player.opp ? 1 : 0));
+            line.pop();
+            for (const index of seen) overlaps[index]--;
+          }
+        };
+        search(1, 0, qb.salary, qb.key, qb.key, 0, 0);
+        for (const p of mates) p.bonus = 0;
+        for (const p of opps) p.bonus = 0;
+      }
+      for (const index of seenQb) overlaps[index]--;
+      if (constrained) { for (const p of mates) p.mate = 0; for (const p of opps) p.opp = 0; }
+    }
+    if (!best) { limited = aborted; break; }
+    if (aborted) approximate++;
+
+    // Put the latest kickoff in FLEX so a late swap stays open.
+    const by = Object.fromEntries(POS.map(pos => [pos, best.line.filter(p => p.pos === pos)]));
+    const pickFlex = by[best.flex].slice().sort((a, b) => b.start - a.start || a.salary - b.salary)[0];
+    by[best.flex] = by[best.flex].filter(p => p !== pickFlex);
+    const ordered = [...by.QB, ...by.RB, ...by.WR, ...by.TE, pickFlex, ...by.DST];
+    let median = 0, salary = 0, score = 0, own = 0, capped = false;
+    for (const p of ordered) {
+      median += p.median; salary += p.salary; score += p.score; own += p.own || 0;
+      if (++p.used >= p.max) capped = true;
+    }
+    lineups.push({ids: ordered.map(p => p.id), median, salary, score, own, proven: !aborted});
+    emit(lineups.length);
+    if (capped) prepare();
+  }
+  return {lineups, limited, approximate, poolSize: all.length};
+}
+
+function lineupsCsv(lineups) {
+  return [SLOTS.join(','), ...lineups.map(lineup => lineup.ids.join(','))].join('\r\n') + '\r\n';
+}
+function entriesCsv(entries, assigned) {
+  return [csvLine([...ENTRY_HEAD, ...SLOTS]), ...entries.filter(e => assigned.has(e.id)).map(e =>
+    csvLine([e.id, e.contest, e.contestId, e.fee, ...assigned.get(e.id).ids]))].join('\r\n') + '\r\n';
+}
+function projectionsCsv(players) {
+  return [csvLine(['ID', 'Name', 'Position', 'Team', 'Salary', 'Projection', 'ProjOwn']),
+    ...players.map(p => csvLine([p.id, p.name, p.pos, p.team, p.salary, p.projection, p.ownership ?? '']))].join('\r\n') + '\r\n';
+}
+/* ---------- end pure logic ---------- */
+
+/* ---------- Shared page helpers ---------- */
+const $ = id => document.getElementById(id);
+const esc = text => String(text).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const money = n => '$' + Number(n).toLocaleString('en-US');
+const PLAYER_KEYS = ['id', 'name', 'pos', 'team', 'opp', 'home', 'game', 'start', 'when', 'salary', 'projection', 'ownership'];
+let slate = null, baseline = [], players = [], byId = new Map();
+
+async function loadSlate(url) {
+  const response = await fetch(url, {cache: 'no-cache'});
+  if (!response.ok) throw Error('Slate data did not load.');
+  slate = await response.json();
+  baseline = slate.players.map(row => ({...Object.fromEntries(PLAYER_KEYS.map((key, i) => [key, row[i]])), action: '', cap: null}));
+  setPlayers(baseline.map(p => ({...p})));
+  loadEdits();
+}
+function setPlayers(list) {
+  players = list;
+  byId = new Map(players.map(p => [p.id, p]));
+}
+/* Edits are remembered in this browser only, and shared by the Optimizer and Lineup Setup pages. */
+const storeKey = () => 'dfs-optimizer:' + slate.name;
+function saveEdits() {
+  try {
+    const base = new Map(baseline.map(p => [p.id, p]));
+    const edits = {};
+    for (const p of players) {
+      const b = base.get(p.id);
+      if (p.action || p.cap != null || p.projection !== b.projection || p.ownership !== b.ownership) edits[p.id] = [p.projection, p.ownership, p.action, p.cap];
+    }
+    localStorage.setItem(storeKey(), JSON.stringify(edits));
+  } catch {}
+}
+function loadEdits() {
+  try {
+    const edits = JSON.parse(localStorage.getItem(storeKey()) || '{}');
+    for (const p of players) if (edits[p.id]) [p.projection, p.ownership, p.action, p.cap = null] = edits[p.id];
+  } catch {}
+}
+function editCounts() {
+  const base = new Map(baseline.map(p => [p.id, p]));
+  return {
+    locks: players.filter(p => p.action === 'lock').length,
+    outs: players.filter(p => p.action === 'out').length,
+    edited: players.filter(p => p.projection !== base.get(p.id).projection || p.ownership !== base.get(p.id).ownership).length,
+    caps: players.filter(p => p.cap != null).length
+  };
+}
+const asRows = list => list.filter(p => p.projection !== '').map(p => ({id: p.id, name: p.name, pos: p.pos, team: p.team, projection: Number(p.projection), ownership: p.ownership}));
+// Swap in a DraftKings file's player list, carrying projections, locks and limits across.
+function adoptDraftKings(dk) {
+  const carriedBase = applyProjections(dk.players, asRows(baseline));
+  const carried = applyProjections(dk.players, asRows(players));
+  const kept = new Map(players.filter(p => p.action || p.cap != null).map(p => [p.id, p]));
+  baseline = carriedBase.players.map(p => ({...p, cap: null}));
+  setPlayers(carried.players.map(p => ({...p, action: kept.get(p.id)?.action || '', cap: kept.get(p.id)?.cap ?? null})));
+  return {projected: players.filter(p => p.projection !== '').length, viaName: carried.viaName};
+}
+
+function toast(message) {
+  const node = $('toast');
+  node.textContent = message;
+  node.classList.add('on');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => node.classList.remove('on'), 2600);
+}
+function download(text, filename, type) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([text], {type}));
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+}
+async function copy(text, what) {
+  try { await navigator.clipboard.writeText(text); toast(what + ' copied. Paste into a .csv file or a spreadsheet.'); }
+  catch { toast('This browser blocked copying. Use the download button.'); }
+}
+
+function preflight() {
+  const locks = players.filter(p => p.action === 'lock');
+  const missing = locks.find(p => !(Number(p.projection) > 0));
+  if (missing) return missing.name + ' is locked but has no projection. A player projected at 0 is treated as out, so enter a projection or remove the lock.';
+  const limit = {QB: 1, RB: 3, WR: 4, TE: 2, DST: 1};
+  for (const pos of POSITIONS) {
+    const n = locks.filter(p => p.pos === pos).length;
+    if (n > limit[pos]) return 'You locked ' + n + ' ' + pos + 's. A lineup holds at most ' + limit[pos] + '.';
+  }
+  if (locks.filter(p => ['RB', 'WR', 'TE'].includes(p.pos)).length > 7) return 'You locked more than 7 runners and pass catchers.';
+  if (locks.reduce((sum, p) => sum + p.salary, 0) > 50000) return 'Your locked players cost more than $50,000.';
+  if (players.filter(p => Number(p.projection) > 0 && p.action !== 'out').length < 9) return 'Fewer than 9 players have a projection. Load projections or enter them in the Optimizer.';
+  return '';
+}
+const enginePlayers = () => players.map(p => ({id: p.id, pos: p.pos, team: p.team, game: p.game, start: p.start, salary: p.salary, projection: p.projection, ownership: p.ownership, action: p.action, cap: p.cap}));
+// Runs the optimizer off the main thread. Returns {promise, stop}.
+function runOptimizer(rules, onProgress) {
+  const payload = {rules, players: enginePlayers()};
+  let worker = null;
+  const promise = new Promise((resolve, reject) => {
+    const inline = () => setTimeout(() => resolve(optimize(payload.players, payload.rules, () => {})), 30);
+    try {
+      const url = URL.createObjectURL(new Blob([optimize.toString(), '\nself.onmessage = e => self.postMessage(optimize(e.data.players, e.data.rules, n => self.postMessage(n)));'], {type: 'text/javascript'}));
+      worker = new Worker(url);
+      URL.revokeObjectURL(url);
+      worker.onmessage = ({data}) => {
+        if (typeof data === 'number') return onProgress(data);
+        worker.terminate();
+        resolve(data);
+      };
+      worker.onerror = () => { worker = null; inline(); };
+      worker.postMessage(payload);
+    } catch { inline(); }
+    runOptimizer.cancel = () => { if (worker) worker.terminate(); reject(Error('stopped')); };
+  });
+  return {promise, stop: () => runOptimizer.cancel()};
+}
+
+// Facts about one lineup, recalculated from the current player pool.
+function describe(ids) {
+  const line = ids.map(id => byId.get(id));
+  if (line.some(p => !p)) return null;
+  const qb = line[0];
+  const mates = line.filter((p, i) => i > 0 && p.team === qb.team && (p.pos === 'WR' || p.pos === 'TE'));
+  const backs = line.filter(p => p.game === qb.game && p.team !== qb.team && p.pos !== 'DST');
+  const dst = line[8];
+  const facing = line.filter(p => p.pos !== 'DST' && p.team === dst.opp);
+  const salary = line.reduce((sum, p) => sum + p.salary, 0);
+  const projection = line.reduce((sum, p) => sum + (Number(p.projection) || 0), 0);
+  const own = line.reduce((sum, p) => sum + (p.ownership || 0), 0);
+  const flags = [];
+  if (salary < 48000) flags.push('Under $48,000');
+  else if (50000 - salary > 500) flags.push(money(50000 - salary) + ' unused');
+  if (facing.length) flags.push('DST faces ' + facing.map(p => p.name).join(', '));
+  const shape = qb.team + ' ' + (mates.length ? 'QB + ' + mates.length : 'QB alone') + (backs.length ? ', ' + backs.length + ' bring-back' + (backs.length > 1 ? 's' : '') + ' (' + qb.opp + ')' : ', no bring-back');
+  return {line, qb, mates, backs, salary, projection, own, flags, shape};
+}
+function lineupRows(f) {
+  return f.line.map((p, i) => {
+    const dot = i === 0 || f.mates.includes(p) ? '<i class="dot full" title="QB stack"></i>' : f.backs.includes(p) ? '<i class="dot back" title="Bring-back"></i>' : '';
+    return '<tr><td class="slot">' + SLOTS[i] + '</td><td class="nm">' + dot + esc(p.name) + '</td><td class="muted">' + esc(p.team) + '</td><td class="r">' + money(p.salary) + '</td><td class="r">' + Number(p.projection).toFixed(1) + '</td></tr>';
+  }).join('');
+}
+function bars(pairs, n, label) {
+  return pairs.map(([text, count, pos]) => {
+    const pct = Math.round(100 * count / n);
+    return '<div class="expo-row"><span class="pos ' + pos + '">' + (label || pos) + '</span><div class="nm"><i style="width:' + pct + '%"></i><span>' + esc(text) + '</span></div><span class="r num">' + pct + '%</span></div>';
+  }).join('');
+}
+// Exposure across a list of lineups (each an array of 9 ids). Returns HTML for quarterbacks, games and players.
+function exposureHtml(lineups) {
+  const n = lineups.length, use = new Map(), qbs = new Map(), games = new Map();
+  for (const ids of lineups) {
+    const line = ids.map(id => byId.get(id));
+    for (const p of line) use.set(p.id, (use.get(p.id) || 0) + 1);
+    qbs.set(line[0].id, (qbs.get(line[0].id) || 0) + 1);
+    const perGame = new Map();
+    for (const p of line) perGame.set(p.game, (perGame.get(p.game) || 0) + 1);
+    for (const [game, count] of perGame) if (count >= 3) games.set(game, (games.get(game) || 0) + 1);
+  }
+  const desc = (a, b) => b[1] - a[1];
+  return {
+    qb: bars([...qbs].sort(desc).map(([id, count]) => [byId.get(id).name, count, 'QB']), n),
+    game: bars([...games].sort(desc).map(([game, count]) => [game, count, 'FLEX']), n, 'GM') || '<span class="small muted">None</span>',
+    player: bars([...use].sort((a, b) => b[1] - a[1] || byId.get(b[0]).salary - byId.get(a[0]).salary).map(([id, count]) => [byId.get(id).name, count, byId.get(id).pos]), n)
+  };
+}
+
+/* Lineups built in the Optimizer are saved in this browser so Lineup Setup can distribute them. */
+const poolKey = () => 'dfs-optimizer:lineups:' + slate.name;
+function loadPool() {
+  try {
+    const list = JSON.parse(localStorage.getItem(poolKey()) || '[]');
+    return Array.isArray(list) ? list.filter(item => item && Array.isArray(item.ids) && item.ids.length === 9) : [];
+  } catch { return []; }
+}
+function savePool(list) {
+  try { localStorage.setItem(poolKey(), JSON.stringify(list.slice(-1000))); return true; } catch { return false; }
+}
+function addToPool(lineups, kind) {
+  const list = loadPool();
+  const seen = new Set(list.map(item => lineupKey(item.ids)));
+  let added = 0;
+  for (const ids of lineups) {
+    const key = lineupKey(ids);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    list.push({ids, kind});
+    added++;
+  }
+  savePool(list);
+  return {added, total: list.length};
+}
+// A saved lineup is usable when every player is still in the pool, projected, not ruled out, and under the cap.
+function usable(ids) {
+  const line = ids.map(id => byId.get(id));
+  return line.every(p => p && p.action !== 'out' && Number(p.projection) > 0) && line.reduce((sum, p) => sum + p.salary, 0) <= 50000;
+}
+
+/* ---------- DraftKings entries ---------- */
+const hasLineup = entry => entry.current.some(Boolean);
+const lineupKey = ids => ids.slice().sort().join(',');
+const feeOf = entry => Number(String(entry.fee).replace(/[^0-9.]/g, '')) || 0;
+// Read from the contest name only: these are labels, not verified contest settings.
+function contestKind(name) {
+  if (/double up|50\/50|fifty|head to head|h2h/i.test(name)) return 'Cash';
+  if (/satellite|supersat|qualifier/i.test(name)) return 'Qualifier';
+  return 'Tournament';
+}
+function contestLimit(name) {
+  const max = /\[(\d+) Entry Max\]/i.exec(name);
+  if (max) return Number(max[1]);
+  return /single entry/i.test(name) ? 1 : null;
+}
+// Pre-upload checks. assignments: Map(entryId -> {ids}).
+function validateExport(entries, assignments) {
+  const checks = [];
+  const add = (level, text) => checks.push({level, text});
+  const rows = entries.filter(entry => assignments.has(entry.id));
+  if (!rows.length) return {verdict: 'idle', checks};
+  const limit = {QB: [1, 1], RB: [2, 3], WR: [3, 4], TE: [1, 2], DST: [1, 1]};
+  let structural = 0, inactive = 0, flexLate = 0, review = 0, repeats = 0;
+  const perContest = new Map();
+  for (const entry of rows) {
+    const ids = assignments.get(entry.id).ids;
+    const line = ids.map(id => byId.get(id));
+    const key = lineupKey(ids);
+    if (!perContest.has(entry.contestId)) perContest.set(entry.contestId, new Set());
+    if (perContest.get(entry.contestId).has(key)) repeats++;
+    perContest.get(entry.contestId).add(key);
+    if (ids.length !== 9 || line.some(p => !p) || new Set(ids).size !== 9) { structural++; continue; }
+    const slotsOk = line.every((p, i) => SLOTS[i] === 'FLEX' ? ['RB', 'WR', 'TE'].includes(p.pos) : p.pos === SLOTS[i]);
+    const counts = Object.fromEntries(POSITIONS.map(pos => [pos, line.filter(p => p.pos === pos).length]));
+    const salary = line.reduce((sum, p) => sum + p.salary, 0);
+    if (!slotsOk || POSITIONS.some(pos => counts[pos] < limit[pos][0] || counts[pos] > limit[pos][1]) || salary > 50000 || new Set(line.map(p => p.game)).size < 2) structural++;
+    if (line.some(p => p.action === 'out' || !(Number(p.projection) > 0))) inactive++;
+    const flex = line[7];
+    if (line.slice(1, 7).some(p => p.pos === flex.pos && p.start > flex.start)) flexLate++;
+    if (salary < 48000 || 50000 - salary > 500) review++;
+  }
+  add(structural ? 'fail' : 'pass', structural ? structural + ' assigned lineups break a DraftKings roster, salary cap or two-game rule, or use a player missing from this file.' : 'Every assigned lineup has 9 valid players in legal slots, at or under $50,000, from at least two games.');
+  add(inactive ? 'fail' : 'pass', inactive ? inactive + ' assigned lineups use a player marked Out or left without a projection. Rebuild the slate.' : 'No assigned lineup uses a player marked Out or without a projection. Injury status itself is not checked here.');
+  const csv = entriesCsv(entries, assignments);
+  const back = parseCsv(csv);
+  const expected = [...ENTRY_HEAD, ...SLOTS];
+  const known = new Set(entries.map(entry => entry.id));
+  const seen = new Set();
+  let readOk = back.length === rows.length + 1 && expected.every((cell, i) => back[0][i] === cell);
+  back.slice(1).forEach((row, i) => {
+    const entry = rows[i];
+    if (!entry || row[0] !== entry.id || row[2] !== entry.contestId || seen.has(row[0]) || !known.has(row[0]) ||
+        assignments.get(entry.id).ids.some((id, j) => row[4 + j] !== id)) readOk = false;
+    seen.add(row[0]);
+  });
+  add(readOk ? 'pass' : 'fail', readOk ? 'Export read back: ' + rows.length + ' rows, each original entry ID and contest ID once, player IDs in DraftKings slot order.' : 'The export did not read back correctly. Do not upload it.');
+  add(flexLate ? 'warn' : 'pass', flexLate ? flexLate + ' lineups could hold a later kickoff in FLEX.' : 'FLEX holds the latest kickoff the roster allows in every lineup.');
+  if (repeats) add('warn', repeats + (repeats === 1 ? ' entry repeats' : ' entries repeat') + ' a lineup already used in the same contest.');
+  else add('pass', 'No lineup is repeated inside a contest.');
+  if (review) add('warn', review + (review === 1 ? ' lineup is' : ' lineups are') + ' under $48,000 or over $500 unused. That is legal; check that it is on purpose.');
+  const contests = new Map();
+  for (const entry of entries) contests.set(entry.contestId, {name: entry.contest, n: (contests.get(entry.contestId)?.n || 0) + 1});
+  const over = [...contests.values()].filter(c => contestLimit(c.name) != null && c.n > contestLimit(c.name)).length;
+  const unknown = [...contests.values()].filter(c => contestLimit(c.name) == null).length;
+  if (over) add('fail', over + ' contests hold more of your entries than the limit in their name.');
+  else if (unknown) add('warn', 'Entry limits: ' + (contests.size - unknown) + ' contests are within the limit in their name. ' + unknown + ' do not state a limit, so those are not verified.');
+  else add('pass', 'Every contest is within the entry limit stated in its name.');
+  const verdict = checks.some(c => c.level === 'fail') ? 'bad' : checks.some(c => c.level === 'warn') ? 'warn' : 'go';
+  return {verdict, checks, csv};
+}
+function showVerdict(check) {
+  const label = {idle: 'NOT CHECKED', go: 'GO', warn: 'GO WITH WARNINGS', bad: 'NO-GO'}[check.verdict];
+  $('verdict').textContent = label;
+  $('verdict').className = 'pill ' + (check.verdict === 'go' ? '' : check.verdict);
+  $('verdictLine').textContent = check.verdict === 'idle' ? 'Build your slate to run the export checks.' :
+    check.verdict === 'bad' ? 'The export is blocked until the failed checks are fixed.' :
+    check.checks.filter(c => c.level === 'pass').length + ' checks passed, ' + check.checks.filter(c => c.level === 'warn').length + ' warnings.';
+  $('checks').innerHTML = check.checks.map(c => '<li class="' + c.level + '"><b>' + c.level.toUpperCase() + '</b><span>' + esc(c.text) + '</span></li>').join('');
+}
+/* ---------- end shared helpers ---------- */
+
+
+/* ---------- Lineup Setup page ---------- */
+try { await loadSlate('../slate.json'); }
+catch { $('app').innerHTML = '<p class="fatal">This week\'s slate did not load. Refresh the page to try again.</p>'; throw Error('no slate'); }
+
+// Suggested approaches. Wording follows the playbook's contest classes; every setting is editable.
+const APPROACH = {
+  cash: {name: 'Cash', stack: 0, bring: 0,
+    why: 'Double-ups, 50/50s and head-to-heads. One lineup, the highest total projection available, in every cash entry. No stack required and no fading a player for being popular.'},
+  small: {name: 'Small tournament', stack: 1, bring: 0,
+    why: 'Under about 5,000 entries. Keep projection strong and avoid needless longshots. Preferred shape: a quarterback with at least one of his pass catchers.'},
+  medium: {name: 'Medium tournament', stack: 2, bring: 1,
+    why: 'Roughly 5,000 to 100,000 entries, or size unknown. More correlation: a quarterback with two pass catchers and a bring-back is the default preference.'},
+  massive: {name: 'Massive tournament', stack: 2, bring: 1,
+    why: 'About 100,000 entries or more, with top-heavy payouts. Same stack preference; ownership matters most here, so set an ownership lean if you want leverage.'}
+};
+const ORDER = ['cash', 'small', 'medium', 'massive'];
+const settings = Object.fromEntries(ORDER.map(key => [key, {stack: APPROACH[key].stack, bring: APPROACH[key].bring, lean: 0}]));
+let entries = null, contests = [], running = null, built = null;
+const assignments = new Map();
+
+function fieldFloor(name, fee) {
+  if (!(fee > 0) || contestKind(name) !== 'Tournament') return null;
+  const m = /\$([\d.,]+)\s*([KM])\b/i.exec(name);
+  if (!m) return null;
+  const prize = Number(m[1].replace(/,/g, '')) * (m[2].toUpperCase() === 'M' ? 1e6 : 1e3);
+  return Math.round(prize / fee);
+}
+function suggest(name, fee) {
+  if (contestKind(name) === 'Cash') return 'cash';
+  const field = fieldFloor(name, fee);
+  if (field == null) return 'medium';
+  return field < 5000 ? 'small' : field >= 100000 ? 'massive' : 'medium';
+}
+
+function renderCarry() {
+  const {locks, outs, edited, caps} = editCounts();
+  const saved = loadPool();
+  const usableCount = saved.filter(item => usable(item.ids)).length;
+  $('slateLine').textContent = slate.name + ' · ' + new Set(players.map(p => p.game)).size + ' games · ' + players.length + ' players';
+  $('carryLine').innerHTML = 'From the <a href="../">Optimizer</a> on this device: <b>' + usableCount + '</b> saved lineup' + (usableCount === 1 ? '' : 's') +
+    (saved.length > usableCount ? ' (' + (saved.length - usableCount) + ' more no longer usable)' : '') + ', ' + edited + ' edited projections, ' + locks + ' locked, ' + outs + ' out, ' + caps + ' personal limits.' +
+    (usableCount ? '' : ' With none saved, Lineup Setup builds every lineup for you.');
+}
+
+/* --- step 1: files --- */
+function reset() {
+  assignments.clear();
+  built = null;
+  $('slateStep').hidden = true;
+}
+$('dkFile').onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const status = $('fileStatus');
+  try {
+    const dk = readDraftKings(await file.text());
+    if (!dk.entries) throw Error('This file has a player list but no contest entries. Use the CSV from Lineups, Edit entries on DraftKings.');
+    const carried = adoptDraftKings(dk);
+    entries = dk.entries;
+    const map = new Map();
+    for (const entry of entries) {
+      if (!map.has(entry.contestId)) map.set(entry.contestId, {id: entry.contestId, name: entry.contest, fee: feeOf(entry), entries: []});
+      map.get(entry.contestId).entries.push(entry);
+    }
+    contests = [...map.values()].sort((a, b) => b.fee - a.fee || b.entries.length - a.entries.length);
+    for (const c of contests) { c.field = fieldFloor(c.name, c.fee); c.approach = suggest(c.name, c.fee); }
+    reset();
+    let message = 'Loaded ' + entries.length + ' entries in ' + contests.length + ' contests from ' + file.name + '. ' + carried.projected + ' of ' + dk.players.length + ' players have a projection.';
+    if (dk.skipped) message += ' Skipped ' + dk.skipped + ' players whose games are closed.';
+    const warn = carried.projected < 20;
+    if (warn) message += ' This looks like a different slate. Load a projections CSV for it.';
+    status.textContent = message;
+    status.className = 'status' + (warn ? ' warn' : '');
+    $('planStep').hidden = false;
+    renderCarry();
+    renderPlan();
+  } catch (error) { status.textContent = error.message; status.className = 'status bad'; }
+};
+$('projFile').onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const status = $('fileStatus');
+  try {
+    const parsed = readProjections(await file.text());
+    const merged = applyProjections(players, parsed.list);
+    if (!merged.matched) throw Error('None of the rows in ' + file.name + ' match a player on this slate. Rows need a DraftKings ID, or a name and team.');
+    setPlayers(merged.players);
+    saveEdits();
+    reset();
+    status.textContent = 'Updated ' + merged.matched + ' players from ' + file.name + '.' + (merged.unmatched ? ' ' + merged.unmatched + ' rows did not match this slate.' : '');
+    status.className = 'status';
+    renderCarry();
+  } catch (error) { status.textContent = error.message; status.className = 'status bad'; }
+};
+
+/* --- step 2: plan --- */
+const toFill = contest => contest.entries.filter(entry => !($('keep').checked && hasLineup(entry)));
+function renderPlan() {
+  const fees = entries.reduce((sum, entry) => sum + feeOf(entry), 0);
+  const filled = entries.filter(hasLineup).length;
+  $('keepCount').textContent = filled;
+  $('entrySummary').innerHTML = '<span><b>' + entries.length + '</b> entries</span><span><b>' + contests.length + '</b> contests</span><span>Total fees <b class="num">$' + fees.toFixed(2) +
+    '</b></span><span><b>' + filled + '</b> already filled</span>';
+  $('contestRows').innerHTML = contests.map(c => {
+    const max = contestLimit(c.name);
+    return '<tr data-id="' + esc(c.id) + '"><td>' + esc(c.name) + '</td><td class="r">$' + c.fee.toFixed(2) + '</td><td class="r">' + c.entries.length + '</td><td class="r">' + (max ?? '') + '</td><td class="r">' +
+      (c.field == null ? '<span class="muted">unknown</span>' : c.field.toLocaleString('en-US')) + '</td><td><select aria-label="Approach for ' + esc(c.name) + '">' +
+      ORDER.map(key => '<option value="' + key + '"' + (c.approach === key ? ' selected' : '') + '>' + APPROACH[key].name + '</option>').join('') + '</select></td></tr>';
+  }).join('');
+  $('approaches').innerHTML = ORDER.filter(key => contests.some(c => c.approach === key)).map(key => {
+    const mine = contests.filter(c => c.approach === key);
+    const n = mine.reduce((sum, c) => sum + toFill(c).length, 0);
+    const a = APPROACH[key], s = settings[key];
+    const tally = '<p class="tally">' + n + ' entr' + (n === 1 ? 'y' : 'ies') + ' to fill in ' + mine.length + ' contest' + (mine.length === 1 ? '' : 's') + '</p>';
+    if (key === 'cash') return '<div class="approach"><h3>' + a.name + '</h3><p class="why">' + a.why + '</p>' + tally + '</div>';
+    const options = (count, value, label) => Array.from({length: count}, (_, i) => '<option value="' + i + '"' + (i === value ? ' selected' : '') + '>' + label(i) + '</option>').join('');
+    return '<div class="approach" data-key="' + key + '"><h3>' + a.name + '</h3><p class="why">' + a.why + '</p>' + tally +
+      '<div><div class="field"><label for="stack-' + key + '">Preferred QB stack</label><select id="stack-' + key + '" data-set="stack">' + options(5, s.stack, i => i ? 'QB + ' + i + (i < 4 ? ' or more' : '') : 'None') + '</select></div>' +
+      '<div class="field"><label for="bring-' + key + '">Preferred bring-back</label><select id="bring-' + key + '" data-set="bring">' + options(4, s.bring, i => i ? 'At least ' + i : 'None') + '</select></div>' +
+      '<div class="field"><label for="lean-' + key + '">Ownership lean</label><input id="lean-' + key + '" data-set="lean" type="number" min="0" max="10" step="0.1" value="' + s.lean + '">' +
+      '<span class="hint">Points off per 10% of projected ownership. 0 ranks on projection alone.</span></div></div></div>';
+  }).join('');
+}
+$('contestRows').addEventListener('change', event => {
+  const select = event.target.closest('select');
+  if (!select) return;
+  contests.find(c => c.id === select.closest('tr').dataset.id).approach = select.value;
+  reset();
+  renderPlan();
+});
+$('approaches').addEventListener('change', event => {
+  const input = event.target.closest('[data-set]');
+  if (!input) return;
+  settings[input.closest('.approach').dataset.key][input.dataset.set] = Number(input.value) || 0;
+  reset();
+});
+for (const id of ['keep', 'extra', 'spread']) $(id).onchange = () => { reset(); renderPlan(); };
+
+/* --- building and distributing --- */
+const score = (f, lean) => f.projection - f.own * lean / 10;
+const fits = (f, s) => f.mates.length >= s.stack && f.backs.length >= s.bring;
+function setStatus(message, kind) {
+  $('buildStatus').textContent = message;
+  $('buildStatus').className = 'status' + (kind ? ' ' + kind : '');
+}
+function idle() {
+  running = null;
+  $('build').textContent = 'Build my slate';
+  $('progress').hidden = true;
+}
+$('build').onclick = async () => {
+  if (running) { running.stop(); return; }
+  const problem = preflight();
+  if (problem) { setStatus(problem, 'bad'); return; }
+  const saved = loadPool().filter(item => usable(item.ids)).map(item => item.ids);
+  const need = {};
+  for (const key of ORDER) {
+    const mine = contests.filter(c => c.approach === key).map(c => toFill(c).length).filter(Boolean);
+    need[key] = !mine.length ? 0 : key === 'cash' ? 1 : $('spread').checked ? Math.min(150, mine.reduce((a, b) => a + b, 0)) : Math.max(...mine);
+  }
+  const jobs = ORDER.filter(key => need[key] && (key === 'cash' || ($('extra').checked && saved.length < need[key])));
+  const extra = {};
+  $('build').textContent = 'Stop';
+  $('progress').hidden = false;
+  try {
+    for (const [index, key] of jobs.entries()) {
+      const s = settings[key];
+      const rules = {count: key === 'cash' ? 1 : Math.min(150, need[key]), stack: s.stack, bring: s.bring, minimum: 0, differences: 1, exposure: 100, ownershipWeight: s.lean / 10};
+      setStatus('Building ' + APPROACH[key].name.toLowerCase() + ' lineups…');
+      running = runOptimizer(rules, done => {
+        $('progress').firstElementChild.style.width = (100 * (index + done / rules.count) / jobs.length) + '%';
+        setStatus('Building ' + APPROACH[key].name.toLowerCase() + ' lineups: ' + done + ' of ' + rules.count + '…');
+      });
+      const data = await running.promise;
+      extra[key] = data.lineups.map(lineup => lineup.ids);
+    }
+  } catch { idle(); setStatus('Build stopped. Nothing was changed.'); return; }
+  idle();
+  distribute(saved, extra, need);
+};
+
+function distribute(saved, extra, need) {
+  assignments.clear();
+  const savedKeys = new Set(saved.map(lineupKey));
+  const facts = new Map();
+  const fact = ids => { const key = lineupKey(ids); if (!facts.has(key)) facts.set(key, describe(ids)); return facts.get(key); };
+  const notes = [];
+
+  // Cash: the single highest projection among saved lineups and the one just built.
+  let cash = null;
+  const cashEntries = contests.filter(c => c.approach === 'cash').flatMap(toFill);
+  if (cashEntries.length) {
+    const options = [...saved, ...(extra.cash || [])];
+    options.sort((a, b) => fact(b).projection - fact(a).projection);
+    cash = options[0] || null;
+    if (cash) for (const entry of cashEntries) assignments.set(entry.id, {ids: cash, source: 'Cash lineup'});
+  }
+
+  // Tournaments: saved lineups first (those in the preferred shape leading), then the ones built here.
+  const used = new Map();
+  let short = 0;
+  const ranked = {};
+  for (const key of ['small', 'medium', 'massive']) {
+    if (!need[key]) continue;
+    const s = settings[key];
+    const mine = saved.slice().sort((a, b) => (fits(fact(b), s) - fits(fact(a), s)) || score(fact(b), s.lean) - score(fact(a), s.lean));
+    const seen = new Set(mine.map(lineupKey));
+    const more = (extra[key] || []).filter(ids => !seen.has(lineupKey(ids)));
+    ranked[key] = [...mine, ...more].map((ids, rank) => ({ids, rank, key: lineupKey(ids)}));
+  }
+  for (const contest of contests) {
+    if (contest.approach === 'cash') continue;
+    const open = toFill(contest);
+    if (!open.length) continue;
+    const list = (ranked[contest.approach] || []).slice();
+    if ($('spread').checked) list.sort((a, b) => (used.get(a.key) || 0) - (used.get(b.key) || 0) || a.rank - b.rank);
+    open.forEach((entry, i) => {
+      const pick = list[i];
+      if (!pick) { short++; return; }
+      used.set(pick.key, (used.get(pick.key) || 0) + 1);
+      assignments.set(entry.id, {ids: pick.ids, source: savedKeys.has(pick.key) ? 'Saved' : 'Built here'});
+    });
+  }
+  if (short) notes.push(short + ' entries were left empty because there were not enough different lineups for their contest. Turn on "Build extra lineups" or save more in the Optimizer.');
+  built = {cash, ranked, savedKeys, notes, best: extra.cash && extra.cash[0]};
+  renderSlate();
+  $('slateStep').hidden = false;
+  setStatus('Filled ' + assignments.size + ' of ' + entries.length + ' entries.' + (short ? ' ' + short + ' left empty.' : ''), short ? 'warn' : '');
+  $('slateStep').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block: 'start'});
+}
+
+/* --- step 3: slate --- */
+function renderSlate() {
+  const kept = entries.filter(entry => !assignments.has(entry.id) && hasLineup(entry)).length;
+  const empty = entries.length - assignments.size - kept;
+  const tour = contests.filter(c => c.approach !== 'cash').flatMap(c => c.entries).filter(entry => assignments.has(entry.id));
+  const distinct = new Set(tour.map(entry => lineupKey(assignments.get(entry.id).ids))).size;
+  const fromSaved = [...assignments.values()].filter(a => a.source === 'Saved').length;
+  $('slateSummary').innerHTML = '<span><b>' + assignments.size + '</b> entries filled</span><span><b>' + distinct + '</b> different tournament lineups</span><span><b>' + fromSaved +
+    '</b> from your saved lineups</span><span><b>' + kept + '</b> left as they were</span>' + (empty ? '<span class="status warn"><b>' + empty + '</b> still empty</span>' : '');
+
+  if (built.cash) {
+    const f = describe(built.cash);
+    const n = contests.filter(c => c.approach === 'cash').flatMap(toFill).length;
+    const fromSavedCash = built.savedKeys.has(lineupKey(built.cash));
+    const best = built.best ? describe(built.best) : null;
+    const gap = best && fromSavedCash ? best.projection - f.projection : 0;
+    $('cashBox').innerHTML = '<article class="card" style="max-width:520px;border-color:var(--accent);border-width:2px;margin-bottom:12px"><header><span class="n">CASH</span><span class="pts num">' + f.projection.toFixed(1) +
+      '<small>pts</small></span><span class="meta num"><b>' + money(f.salary) + '</b><br>' + money(50000 - f.salary) + ' left · own sum ' + f.own.toFixed(0) + '%</span></header><table><tbody>' + lineupRows(f) + '</tbody></table>' +
+      '<div class="shape"><b>Your cash lineup, in all ' + n + ' cash entr' + (n === 1 ? 'y' : 'ies') + '.</b> ' + (fromSavedCash ? 'It is the highest-projected of your saved lineups' + (gap > 0.005 ? '.' : ', and nothing projects higher under your current locks and projections.') :
+        'Built here: the highest total projection possible under your current locks and projections.') + '</div>' +
+      (f.flags.length ? '<div class="flags">' + f.flags.map(flag => '<span class="flag">' + esc(flag) + '</span>').join('') + '</div>' : '') + '</article>';
+  } else $('cashBox').innerHTML = '';
+
+  const check = validateExport(entries, assignments);
+  if (built.notes.length && check.verdict !== 'idle') {
+    for (const note of built.notes) check.checks.push({level: 'warn', text: note});
+    if (check.verdict === 'go') check.verdict = 'warn';
+  }
+  showVerdict(check);
+  $('saveEntries').disabled = $('copyEntries').disabled = check.verdict === 'idle' || check.verdict === 'bad';
+
+  if (tour.length) {
+    const expo = exposureHtml(tour.map(entry => assignments.get(entry.id).ids));
+    $('expoQb').innerHTML = expo.qb; $('expoGame').innerHTML = expo.game; $('expo').innerHTML = expo.player;
+  }
+  $('entryRows').innerHTML = contests.map(c => {
+    const head = '<tr class="group"><td colspan="5">' + esc(c.name) + ' <span class="kind">' + APPROACH[c.approach].name + '</span> <span class="muted small">$' + c.fee.toFixed(2) + ' · ' + c.entries.length + ' entr' + (c.entries.length === 1 ? 'y' : 'ies') + '</span></td></tr>';
+    return head + c.entries.map(entry => {
+      const mine = assignments.get(entry.id);
+      if (!mine) {
+        const current = hasLineup(entry) ? entry.current.map(cell => cell.replace(/\s*\(\d+\)$/, '')).filter(Boolean).join(', ') : '';
+        return '<tr data-id="' + entry.id + '"><td class="muted">' + entry.id + '</td><td></td><td class="sum muted">' + (current ? 'Kept: ' + esc(current) : 'Empty') + '</td><td></td><td><button class="linebtn" type="button" data-act="change">Change</button></td></tr>';
+      }
+      const f = describe(mine.ids);
+      return '<tr data-id="' + entry.id + '" class="assigned"><td class="muted">' + entry.id + '</td><td class="r"><b>' + f.projection.toFixed(1) + '</b></td><td class="sum">' + esc(f.qb.name) + ' · ' + esc(f.shape) + ' · ' + money(f.salary) +
+        f.flags.map(flag => ' <span class="flag">' + esc(flag) + '</span>').join('') + '</td><td><span class="kind">' + mine.source + '</span></td><td><button class="linebtn" type="button" data-act="view">View</button> · <button class="linebtn" type="button" data-act="change">Change</button></td></tr>';
+    }).join('');
+  }).join('');
+}
+$('entryRows').addEventListener('click', event => {
+  const button = event.target.closest('[data-act]');
+  if (!button) return;
+  const row = button.closest('tr'), entry = entries.find(item => item.id === row.dataset.id);
+  const contest = contests.find(c => c.id === entry.contestId);
+  const next = row.nextElementSibling;
+  if (next && next.classList.contains('detail')) { next.remove(); if (next.dataset.act === button.dataset.act) return; }
+  const detail = document.createElement('tr');
+  detail.className = 'detail';
+  detail.dataset.act = button.dataset.act;
+  if (button.dataset.act === 'view') {
+    detail.innerHTML = '<td colspan="5"><table><tbody>' + lineupRows(describe(assignments.get(entry.id).ids)) + '</tbody></table></td>';
+  } else {
+    const options = contest.approach === 'cash' ? (built.cash ? [{ids: built.cash}] : []) : (built.ranked[contest.approach] || []);
+    detail.innerHTML = '<td colspan="5" style="padding:8px 10px"><select aria-label="Lineup for entry ' + entry.id + '"><option value="">' + (hasLineup(entry) ? 'Keep the lineup already on DraftKings' : 'Leave empty') + '</option>' +
+      options.slice(0, 150).map((option, i) => { const f = describe(option.ids); return '<option value="' + i + '">' + f.projection.toFixed(1) + ' · ' + esc(f.qb.name) + ' · ' + esc(f.shape) + '</option>'; }).join('') + '</select></td>';
+    detail.querySelector('select').onchange = e => {
+      if (e.target.value === '') assignments.delete(entry.id);
+      else { const pick = options[Number(e.target.value)]; assignments.set(entry.id, {ids: pick.ids, source: contest.approach === 'cash' ? 'Cash lineup' : built.savedKeys.has(lineupKey(pick.ids)) ? 'Saved' : 'Built here'}); }
+      renderSlate();
+    };
+  }
+  row.after(detail);
+});
+$('saveEntries').onclick = () => { const check = validateExport(entries, assignments); if (check.csv && check.verdict !== 'bad') download(check.csv, 'DKEntries-updated.csv', 'text/csv'); };
+$('copyEntries').onclick = () => { const check = validateExport(entries, assignments); if (check.csv && check.verdict !== 'bad') copy(check.csv, 'Entries'); };
+
+renderCarry();
+</script>
+</body>
+</html>

@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NFL DFS Optimizer &amp; Lineup Setup for DraftKings</title>
-<meta name="description" content="A DFS optimizer for DraftKings NFL Classic that runs in your browser. Load your entries, edit projections, build stacked lineups with exposure limits, and export an upload-ready CSV.">
-<meta property="og:title" content="NFL DFS Optimizer &amp; Lineup Setup for DraftKings">
-<meta property="og:description" content="Build optimized DraftKings NFL lineups from your own projections and set them into your contest entries. Nothing is uploaded.">
+<title>NFL DFS Optimizer for DraftKings | Free Lineup Builder</title>
+<meta name="description" content="A DFS optimizer for DraftKings NFL Classic that runs in your browser. Edit projections, lock and exclude players, build stacked lineups with exposure limits, and export them.">
+<meta property="og:title" content="NFL DFS Optimizer for DraftKings">
+<meta property="og:description" content="Build optimized DraftKings NFL lineups from your own projections. Runs in your browser; nothing is uploaded.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://optimizer.jamestroupis.com/">
 <link rel="canonical" href="https://optimizer.jamestroupis.com/">
@@ -215,18 +215,46 @@ tr.assigned td{background:var(--accent-soft)}
   .view{padding:12px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.nav{display:flex;gap:6px;margin-top:14px}
+.nav a{font:700 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;color:var(--band-muted);padding:9px 14px;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:0}
+.nav a:hover{color:var(--band-ink)}
+.nav a[aria-current="page"]{background:var(--bg);color:var(--ink)}
+.band{border-bottom:0}
+.band-in{padding-bottom:0;align-items:flex-start}
+.stripe{height:4px;background:var(--chalk)}
+.fatal{max-width:700px;margin:60px auto;padding:0 20px;color:var(--danger);font-weight:600}
+.wrap{max-width:1100px;margin:auto;padding:20px;display:grid;gap:18px}
+.step{padding:18px}
+.step > h2{display:flex;gap:10px;align-items:baseline;margin-bottom:10px}
+.step > h2 span{font:700 14px/1 var(--display);color:var(--accent-ink);background:var(--accent);border-radius:50%;width:24px;height:24px;display:inline-grid;place-items:center;letter-spacing:0}
+.plan{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:14px}
+.approach{border:1px solid var(--line);border-radius:9px;padding:14px;background:var(--sunk);display:grid;gap:8px;align-content:start}
+.approach h3{font:700 17px/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase}
+.approach .why{font-size:13px;color:var(--muted)}
+.approach .field{border-top:1px solid var(--line);padding:7px 0}
+.approach .field:first-of-type{border-top:0}
+.approach .field input[type=number]{width:70px}
+.approach .tally{font-size:13px;font-weight:600}
+tr.group td{background:var(--sunk);font-weight:600}
+tr.detail td{background:var(--sunk);padding:0}
+tr.detail table td{border:0;padding:3px 10px;font-size:13px}
+.linebtn{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
+.linebtn:hover{text-decoration:underline}
+td.sum{white-space:normal;min-width:260px}
 </style>
 </head>
 <body>
 <header class="band"><div class="band-in">
   <div>
     <div class="brand">NFL · DraftKings Classic</div>
-    <h1>NFL DFS Optimizer &amp; Lineup Setup</h1>
-    <p class="slate">A DraftKings lineup optimizer you run in your own browser. Build optimized lineups from your projections, then set them into your contest entries.</p>
+    <h1>NFL DFS Optimizer</h1>
+    <p class="slate">A place to play with projections and build lineups. Nothing here touches your contests.</p>
     <p class="slate" id="slateLine"></p>
+    <nav class="nav" aria-label="Tools"><a href="./" aria-current="page">Optimizer</a><a href="lineup-setup/">Lineup Setup</a></nav>
   </div>
   <p class="private"><strong>Runs entirely in your browser.</strong>Your DraftKings files and projections never leave this device.</p>
-</div></header>
+</div><div class="stripe"></div></header>
 
 <div class="shell">
   <form class="panel rules" id="rules" autocomplete="off">
@@ -263,14 +291,14 @@ tr.assigned td{background:var(--accent-soft)}
 
   <main class="panel">
     <div class="tabs" role="tablist">
-      <button role="tab" id="tab-players" aria-controls="view-players" aria-selected="true">1 · Players<span class="count" id="nPlayers"></span></button>
-      <button role="tab" id="tab-lineups" aria-controls="view-lineups" aria-selected="false">2 · Optimizer<span class="count" id="nLineups">0</span></button>
-      <button role="tab" id="tab-entries" aria-controls="view-entries" aria-selected="false">3 · Lineup setup<span class="count" id="nEntries">0</span></button>
+      <button role="tab" id="tab-players" aria-controls="view-players" aria-selected="true">Players<span class="count" id="nPlayers"></span></button>
+      <button role="tab" id="tab-lineups" aria-controls="view-lineups" aria-selected="false">Lineups<span class="count" id="nLineups">0</span></button>
+      <button role="tab" id="tab-saved" aria-controls="view-saved" aria-selected="false">Saved<span class="count" id="nSaved">0</span></button>
     </div>
 
     <section class="view" id="view-players" role="tabpanel" aria-labelledby="tab-players">
       <div class="files">
-        <label class="btn" for="dkFile">Load a DraftKings CSV</label><input class="vh" id="dkFile" type="file" accept=".csv,text/csv">
+        <label class="btn" for="dkFile">Load DraftKings salaries CSV</label><input class="vh" id="dkFile" type="file" accept=".csv,text/csv">
         <label class="btn" for="projFile">Load my projections CSV</label><input class="vh" id="projFile" type="file" accept=".csv,text/csv">
         <button class="btn quiet" id="saveProj" type="button">Download projections</button>
         <button class="btn quiet" id="copyProj" type="button">Copy</button>
@@ -324,41 +352,13 @@ tr.assigned td{background:var(--accent-soft)}
       </div>
     </section>
 
-    <section class="view" id="view-entries" role="tabpanel" aria-labelledby="tab-entries" hidden>
-      <div id="entriesEmpty" class="howto">
-        <h2>Bring your DraftKings entries</h2>
-        <p class="muted">Load your entries file, assign the lineups you build, and get back a file DraftKings accepts.</p>
-        <ol>
-          <li>On DraftKings, open <b>Lineups</b>, choose <b>Edit entries</b>, and download the CSV for this slate.</li>
-          <li>Load that file here. Its player list replaces the pool, and your projections carry over.</li>
-          <li>Build lineups, assign them to entries, then upload the CSV you download from this tab.</li>
-        </ol>
-        <div><label class="btn primary" for="dkFile2">Load my entries CSV</label><input class="vh" id="dkFile2" type="file" accept=".csv,text/csv"></div>
-        <p class="status" id="entryLoadStatus" role="status"></p>
-      </div>
-      <div id="entriesBody" hidden>
-        <div class="summary" id="entrySummary"></div>
-        <div class="bar">
-          <label class="small">Show <select id="contest"></select></label>
-          <button class="btn" id="fillEmpty" type="button">Fill empty entries</button>
-          <button class="btn" id="fillAll" type="button">Fill all shown</button>
-          <button class="btn quiet" id="clearAssign" type="button">Clear</button>
-          <span class="grow"></span>
-          <button class="btn primary" id="saveEntries" type="button" disabled>Download entries CSV</button>
-          <button class="btn" id="copyEntries" type="button" disabled>Copy CSV</button>
-        </div>
-        <p class="status" id="entryStatus" role="status" style="margin-top:8px"></p>
-        <details class="verdict" id="verdictBox"><summary><span class="pill idle" id="verdict">NOT CHECKED</span><span id="verdictLine">Assign lineups to run the export checks.</span></summary><ul class="checks" id="checks"></ul></details>
-        <details class="verdict"><summary>Contests, entry limits and fees</summary><div class="scroll" style="margin:0 12px 12px"><table>
-          <thead><tr><th scope="col">Contest</th><th scope="col">Type</th><th scope="col" class="r">Your entries</th><th scope="col" class="r">Limit</th><th scope="col" class="r">Fees</th></tr></thead>
-          <tbody id="contestRows"></tbody></table></div>
-          <p class="small muted" style="padding:0 12px 12px">Type and limit are read from the contest name. A blank limit means the name does not state one, so it is not verified here. No bankroll is assumed.</p></details>
-        <div class="scroll"><table>
-          <thead><tr><th scope="col">Contest</th><th scope="col">Type</th><th scope="col" class="r">Fee</th><th scope="col">Entry</th><th scope="col">Current lineup</th><th scope="col">Use lineup</th></tr></thead>
-          <tbody id="entryRows"></tbody>
-        </table></div>
-        <p class="small muted" style="margin-top:10px">The file includes only the entries you assign. On DraftKings, upload it under Lineups, Edit entries, Upload CSV. This page cannot confirm that DraftKings accepted it.</p>
-      </div>
+    <section class="view" id="view-saved" role="tabpanel" aria-labelledby="tab-saved" hidden>
+      <p class="level"><b>Every lineup you build is saved here, on this device.</b> <a href="lineup-setup/">Lineup Setup</a> reads this list, picks your best cash lineup, and spreads the rest across your tournament entries. Remove anything you would not want played.</p>
+      <div class="bar"><span class="small muted" id="savedLine"></span><span class="grow"></span>
+        <a class="btn primary" href="lineup-setup/">Go to Lineup Setup</a><button class="btn quiet" id="clearSaved" type="button">Clear all</button></div>
+      <div class="scroll"><table>
+        <thead><tr><th scope="col" class="r">Proj</th><th scope="col">Lineup</th><th scope="col">Shape</th><th scope="col" class="r">Salary</th><th scope="col">Built as</th><th scope="col"></th></tr></thead>
+        <tbody id="savedRows"></tbody></table></div>
     </section>
   </main>
 </div>
@@ -366,29 +366,27 @@ tr.assigned td{background:var(--accent-soft)}
 <section class="about">
   <h2>How this DFS optimizer works</h2>
   <div class="about-grid">
-    <div><h3>1. Set your player pool</h3><p>The page opens with this week's DraftKings NFL Classic salaries and a starting set of projections. Change any projection or ownership figure, lock players in, rule players out, or load your own projections CSV.</p></div>
-    <div><h3>2. Optimize lineups</h3><p>Choose cash or tournament, pick a quarterback stack and bring-back, and set exposure limits if you want them. The optimizer searches every legal roster under the $50,000 cap and returns the highest-projected lineups your rules allow, up to 150.</p></div>
-    <div><h3>3. Set lineups into your entries</h3><p>Load your DraftKings Edit Entries CSV, assign lineups to contests, and download a file ready to upload back to DraftKings. Every export is checked for roster, salary and entry-ID errors first.</p></div>
+    <div><h3>Set your player pool</h3><p>The page opens with this week's DraftKings NFL Classic salaries and a starting set of projections. Change any projection or ownership figure, lock players in, rule players out, or load your own projections CSV.</p></div>
+    <div><h3>Choose your rules</h3><p>Pick cash or tournament, a quarterback stack from QB + 1 to QB + 4, bring-backs for game stacks, an ownership lean, and exposure limits if you want them. Nothing is limited until you say so.</p></div>
+    <div><h3>Build and compare lineups</h3><p>The optimizer searches every legal roster under the $50,000 cap and returns the highest-projected lineups your rules allow, up to 150, with exposure by player, quarterback and game.</p></div>
   </div>
   <h3>Common questions</h3>
   <dl>
-    <dt>Is my DraftKings file uploaded anywhere?</dt><dd>No. The optimizer runs on your device. Your entries, projections and lineups stay in your browser.</dd>
+    <dt>Is anything uploaded?</dt><dd>No. The optimizer runs on your device. Your projections and lineups stay in your browser.</dd>
     <dt>Which contests does it support?</dt><dd>DraftKings NFL Classic: one quarterback, two running backs, three wide receivers, one tight end, one flex and one defense under a $50,000 salary cap.</dd>
     <dt>How does it choose lineups?</dt><dd>It ranks complete nine-player lineups by total projected points, less any ownership lean you set. It does not estimate floors, ceilings or win odds, because point projections alone do not support them.</dd>
-    <dt>Does it handle late swap?</dt><dd>It places the latest kickoff in the flex spot so a swap stays open. It does not yet re-optimize lineups after games have started.</dd>
+    <dt>How do I get lineups into my DraftKings contests?</dt><dd>Use <a href="lineup-setup/">Lineup Setup</a>. It reads your DraftKings entries file, suggests an approach for each contest, fills every entry and gives you a file to upload. Your projections, locks and limits from this page carry over.</dd>
   </dl>
 </section>
-<footer class="owner" id="owner"><details class="panel"><summary>Publish this slate (site owner)</summary>
-  <p class="small muted" style="margin-top:8px;max-width:70ch">Load this week's DraftKings salaries and your projections on the Players tab, name the slate, then download a public copy of this page with that data built in. The public copy leaves this panel out.</p>
+<footer class="owner" id="owner" hidden><details class="panel" open><summary>Publish a new slate (site owner)</summary>
+  <p class="small muted" style="margin-top:8px;max-width:70ch">Load this week's DraftKings salaries and your projections on the Players tab, name the slate, then download slate.json and replace that file on the site. Both pages read it.</p>
   <div class="bar"><label class="small" for="slateName">Slate name</label><input id="slateName" type="text" maxlength="80">
-    <button class="btn primary" id="publish" type="button">Download public page</button></div>
+    <button class="btn primary" id="publish" type="button">Download slate.json</button></div>
   <p class="status" id="ownerStatus" role="status"></p>
 </details></footer>
 <div class="toast" id="toast" role="status"></div>
 
-<script id="slateData" type="application/json">{"name":"Week 11 Main Slate","owner":false,"players":[["44943696","Jahmyr Gibbs","RB","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",10000,"21.7",14.21],["44943698","Kenneth Walker III","RB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",9000,"0",14.23],["44943930","CeeDee Lamb","WR","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",8800,"24.5",27.1],["44943932","Amon-Ra St. Brown","WR","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",8200,"17",15.07],["44943700","James Cook III","RB","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",7900,"25.1",12.11],["44943628","Josh Allen","QB","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",7700,"22.7",7.95],["44943702","Chuba Hubbard","RB","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",7500,"17.5",12.97],["44943934","Zay Flowers","WR","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",7400,"16.6",8.62],["44943704","Javonte Williams","RB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",7300,"18",17.37],["44944304","Brock Bowers","TE","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",7300,"3.1",0.87],["44943936","Chris Olave","WR","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",7200,"16.1",5.35],["44943938","Malik Nabers","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",7100,"17.2",9.82],["44943706","Bucky Irving","RB","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",7000,"14.8",3.98],["44943940","Tetairoa McMillan","WR","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",6900,"15.4",5.33],["44943708","D'Andre Swift","RB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",6900,"16.9",6.94],["44943942","George Pickens","WR","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",6800,"18.5",22.2],["44943710","Bhayshul Tuten","RB","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",6800,"15.5",10.95],["44943712","Derrick Henry","RB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",6700,"13.8",6.04],["44943629","Dak Prescott","QB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",6700,"26.1",20.88],["44943944","Parker Washington","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",6700,"16.2",9.72],["44944306","Trey McBride","TE","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",6600,"14",6.03],["44943630","Trevor Lawrence","QB","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",6600,"20.4",5.63],["44943714","Jaylen Warren","RB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",6600,"15.6",9.07],["44943716","Tony Pollard","RB","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",6500,"16.8",14.05],["44943631","Patrick Mahomes","QB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",6500,"21.9",6.27],["44943946","DeVonta Smith","WR","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",6500,"10.9",3.43],["44943948","Garrett Wilson","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",6400,"16.1",11],["44943632","Caleb Williams","QB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",6300,"22.2",13.33],["44943950","Luther Burden III","WR","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",6300,"16.7",13.6],["44943718","Jonah Coleman","RB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",6300,"18.1",30.67],["44943633","Jared Goff","QB","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",6100,"18.3",5.19],["44943952","Rashee Rice","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",6100,"15.7",6.35],["44943720","Saquon Barkley","RB","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",6100,"11.8",2.89],["44943954","DJ Moore","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",6000,"15.1",5.08],["44943722","Emmett Johnson","RB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",6000,"19.6",60.15],["44943956","Jameson Williams","WR","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",5900,"14.7",5.95],["44943724","Breece Hall","RB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",5900,"13.6",3.91],["44943958","Jalen Coker","WR","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",5800,"10.7",2.4],["44943634","Tyler Shough","QB","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",5800,"19",3.16],["44943726","Cam Skattebo","RB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",5800,"12.6",10.62],["44943635","Bryce Young","QB","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",5700,"17.1",3.16],["44943960","Jaylen Waddle","WR","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",5700,"12.2",6.31],["44943728","Ollie Gordon II","RB","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",5600,"11.9",10.03],["44944308","Isaiah Likely","TE","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",5600,"12",10.87],["44943636","Bo Nix","QB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",5600,"20.1",4],["44943637","Cam Ward","QB","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",5500,"19.5",9.62],["44943962","Carnell Tate","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",5500,"16.3",27.29],["44943730","Ashton Jeanty","RB","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",5500,"11.8",6.73],["44943732","Kyle Monangai","RB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",5400,"12.7",1.11],["44943964","Omar Cooper Jr.","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",5400,"0",0],["44943638","Aaron Rodgers","QB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",5400,"14",0.63],["44943734","Travis Etienne Jr.","RB","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",5300,"8.9",0.52],["44943968","Ryan Flournoy","WR","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",5300,"14",3.95],["44943639","Baker Mayfield","QB","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",5300,"9.8",0.64],["44943966","DK Metcalf","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",5300,"14.5",5.73],["44943640","Jacoby Brissett","QB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",5200,"13.3",3.84],["44943970","Jordyn Tyson","WR","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",5200,"14.7",17.07],["44943972","Emeka Egbuka","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",5200,"14.1",11.31],["44943740","Omarion Hampton","RB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",5200,"14.4",9.15],["44943974","Khalil Shakir","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",5100,"10.1",2.29],["44943736","Alvin Kamara","RB","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",5100,"8.3",0.15],["44944310","Colston Loveland","TE","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",5100,"15.3",20.29],["44943976","Josh Downs","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",5100,"13.3",1.81],["44943641","Justin Herbert","QB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",5100,"15.9",4.93],["44943738","Rico Dowdle","RB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",5100,"10.5",0.88],["44943980","Wan'Dale Robinson","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",5000,"0",0],["44943742","Kenny Gainwell","RB","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",5000,"8.5",0.27],["44943978","Ladd McConkey","WR","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",5000,"5.7",1.33],["44943642","Fernando Mendoza","QB","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",5000,"11",0.39],["44943744","Mike Washington Jr.","RB","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",5000,"6.4",0.11],["44943746","Ty Johnson","RB","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",4900,"6.9",0.11],["44943984","Malik Washington","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4900,"9.6",1.43],["44943750","Tyler Allgeier","RB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4900,"8",0.32],["44943643","Geno Smith","QB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4900,"12.7",1.83],["44943748","Braelon Allen","RB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4900,"9.6",0.37],["44943982","Adonai Mitchell","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4900,"11.8",5.5],["44944312","Dalton Kincaid","TE","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",4800,"3.1",0],["44943644","J.J. McCarthy","QB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4800,"15.3",5.06],["44943752","Devin Singletary","RB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4800,"6.3",0.13],["44943754","Chris Rodriguez Jr.","RB","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",4800,"6.7",0.11],["44943986","Tre Tucker","WR","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",4800,"9",0.89],["44943988","Germie Bernard","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",4800,"10.9",2.68],["44943758","Justice Hill","RB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",4700,"9",0.39],["44943992","Devaughn Vele","WR","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",4700,"7.7",0.24],["44944314","Travis Kelce","TE","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4700,"13.3",7.53],["44943766","Kimani Vidal","RB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4700,"6.9",0.11],["44943990","Courtland Sutton","WR","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4700,"9.5",3.79],["44943645","Joe Milton III","QB","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4700,"11.7",2.03],["44943994","Rome Odunze","WR","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",4600,"14.5",15.96],["44943646","Carson Beck","QB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4600,"6.1",0],["44943760","J.K. Dobbins","RB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4600,"7.1",0.13],["44943762","Tank Bigsby","RB","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4600,"2.2",0],["44943996","Makai Lemon","WR","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4600,"9.7",0.4],["44944316","Dallas Goedert","TE","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4600,"10",1.56],["44943647","Kyle McCord","QB","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4500,"8.1",0.98],["44943756","Jonathon Brooks","RB","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",4500,"4.6",0.13],["44943764","Tyjae Spears","RB","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",4500,"7.8",0.12],["44943768","Sione Vaki","RB","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",4500,"6.4",0.13],["44944000","Jakobi Meyers","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",4500,"11.9",7.76],["44943998","Quentin Johnston","WR","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4500,"7.9",0.72],["44943770","Ray Davis","RB","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",4400,"6.1",0.03],["44944002","Caleb Douglas","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4400,"12.2",10.59],["44943772","Roschon Johnson","RB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",4400,"3.9",0],["44944318","Sam LaPorta","TE","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",4400,"11.4",6.97],["44943774","Bam Knight","RB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4400,"7.8",0.24],["44943648","Cade Klubnik","QB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4400,"5.4",0],["44944004","Michael Pittman Jr.","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",4400,"4.4",0.13],["44944006","Keon Coleman","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",4300,"9",1.27],["44943780","Audric Estime","RB","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",4300,"6.3",0.13],["44943778","Kendre Miller","RB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",4300,"4.1",0],["44943650","Jalon Daniels","QB","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",4300,"6.3",2.03],["44943776","Brashard Smith","RB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4300,"0",0],["44943649","Jameis Winston","QB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4300,"5.8",0],["44944320","Michael Mayer","TE","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",4300,"10.3",4.41],["44944008","Dontayvion Wicks","WR","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4300,"0",0],["44943651","Joe Fagnano","QB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",4200,"5",0],["44944012","Chris Godwin Jr.","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",4200,"8.9",6.57],["44943782","James Conner","RB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4200,"2.3",0],["44943784","Keaton Mitchell","RB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4200,"6.9",0.13],["44944010","Pat Bryant","WR","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4200,"9.4",1.48],["44943652","Tanner McKee","QB","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4200,"3.7",0],["44943788","Jaylen Wright","RB","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4100,"5.5",0.03],["44944014","Xavier Worthy","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4100,"8.6",1.27],["44944322","Brenton Strange","TE","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",4100,"11.1",4.32],["44943653","DJ Uiagalelei","QB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4100,"0",0],["44943786","Will Shipley","RB","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4100,"3.4",0.03],["44944016","Darius Cooper","WR","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4100,"4.7",0],["44943654","Kyle Allen","QB","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"0",0],["44943655","Shane Buechele","QB","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"0",0],["44943670","Brady Cook","QB","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"0",0],["44943671","Malik Willis","QB","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"0",0],["44943790","Brock Lampe","RB","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"0",0],["44943792","Frank Gore Jr.","RB","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"0",0],["44943846","Kaytron Allen","RB","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"5.1",0],["44943848","De'Von Achane","RB","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"0",0],["44943850","Carlos Washington Jr.","RB","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"0",0],["44943852","DJ Herman","RB","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",4000,"0",0],["44943688","Kenny Pickett","QB","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"4.4",0],["44943689","Haynes King","QB","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"0",0],["44943692","Kedon Slovis","QB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"0",0],["44943693","Lamar Jackson","QB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"0",0],["44943694","Tyler Huntley","QB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"0",0],["44943695","Skylar Thompson","QB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"0",0],["44943910","Trevor Etienne","RB","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"5.8",0],["44943912","Anthony Tyus III","RB","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"2.3",0],["44943914","AJ Dillon","RB","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"2.5",0],["44943916","Ahmani Marshall","RB","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"0",0],["44943924","Rasheen Ali","RB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"4.6",0],["44943926","Adam Randall","RB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"2.3",0],["44943928","Lucas Scott","RB","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",4000,"0",0],["44943656","Tyson Bagent","QB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",4000,"5.7",0],["44943657","Case Keenum","QB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943658","Miller Moss","QB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943672","Spencer Rattler","QB","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",4000,"4.6",0],["44943673","Zach Wilson","QB","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943794","Zavier Scott","RB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943796","Brittain Brown","RB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943798","Salvon Ahmed","RB","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",4000,"3.5",0],["44943854","CJ Donaldson","RB","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",4000,"2.3",0],["44943856","Ty Chandler","RB","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943858","Zamir White","RB","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",4000,"2.4",0],["44943659","Sam Howell","QB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"4.7",0],["44943660","Kyle Trask","QB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"0",0],["44943665","Mitchell Trubisky","QB","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"4.1",0],["44943666","Hendon Hooker","QB","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"0",0],["44943800","Israel Abanikanda","RB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"5.9",0.14],["44943802","Tyler Goodson","RB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"0",0],["44943804","Malik Davis","RB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"0",0],["44943806","Jashaun Corbin","RB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"0",0],["44943808","Hunter Luepke","RB","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"6.5",0.03],["44943826","Nick Singleton","RB","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"2.6",0],["44943828","Julius Chestnut","RB","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"2.7",0],["44943830","Kalel Mullings","RB","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"2.3",0],["44944018","Calvin Ridley","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"5",0.03],["44999516","Michael Carter","RB","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",4000,"2.5",0],["44943663","Joshua Dobbs","QB","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",4000,"0",0],["44943664","Luke Altmyer","QB","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",4000,"0",0],["44943687","Easton Stick","QB","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",4000,"0",0],["44943820","Jacob Saylors","RB","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",4000,"2.3",0],["44943822","Isiah Pacheco","RB","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",4000,"2.4",0],["44943824","Jabari Small","RB","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",4000,"0",0],["44943906","Sean Tucker","RB","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",4000,"4.6",0],["44943908","Josh Williams","RB","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",4000,"0",0],["44999511","Cooper Rush","QB","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",4000,"0",0],["44943667","Justin Fields","QB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4000,"5.4",0],["44943668","Garrett Nussmeier","QB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4000,"0",0],["44943679","Josh Johnson","QB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4000,"5.3",0.5],["44943680","Joey Aguilar","QB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4000,"0",0],["44943681","Gardner Minshew II","QB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4000,"0",0],["44943832","Jaydn Ott","RB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4000,"2.3",0.11],["44943834","Nate Carter","RB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4000,"5",0],["44943836","Ben VanSumeren","RB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4000,"0",0],["44943884","Evan Hull","RB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4000,"2.6",0],["44943886","Jeremiyah Love","RB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4000,"0",0],["44943888","Trey Benson","RB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4000,"0",0],["44943890","Jerome Ford","RB","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",4000,"2.6",0],["44944528","Chiefs","DST","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4000,"10.7",12.85],["44999514","EJ Smith","RB","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",4000,"0",0],["44943674","Jaxson Dart","QB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"0",0],["44943675","Jake Haener","QB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"0",0],["44943690","Quinn Ewers","QB","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"4",0],["44943691","Nick Mullens","QB","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"0",0],["44943860","Gregory Desrosiers","RB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"3.6",0],["44943862","Tyrone Tracy Jr.","RB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"0",0],["44943864","Phil Mafah","RB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"2.3",0],["44943866","Patrick Ricard","RB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"2.3",0],["44943868","Eric Gray","RB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"0",0],["44943870","Grant Finley","RB","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"0",0],["44943918","Ameer Abdullah","RB","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"3.9",0],["44943920","LeQuint Allen Jr.","RB","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"6.1",0],["44943922","J'Mari Taylor","RB","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",4000,"0",0],["44943676","Will Levis","QB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"0",0],["44943685","Trey Lance","QB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"0",0],["44943686","Jake Browning","QB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"0",0],["44943872","Isaiah Davis","RB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"4.7",0],["44943874","Kene Nwangwu","RB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"2.3",0],["44943876","Chip Trayanum","RB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"0",0],["44943878","Andrew Beck","RB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"2.4",0],["44943880","Al-Jay Henderson","RB","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"0",0],["44943900","Alec Ingold","RB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"0",0],["44943902","Amar Johnson","RB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"0",0],["44943904","Scott Matlock","RB","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"0",0],["44944020","Tre' Harris","WR","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",4000,"10.5",11.95],["44943661","Jarrett Stidham","QB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4000,"4",0],["44943662","Sam Ehlinger","QB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4000,"0",0],["44943669","Aidan O'Connell","QB","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",4000,"3.2",0],["44943810","RJ Harvey","RB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4000,"0",0],["44943812","Tyler Badie","RB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4000,"0",0],["44943814","Cody Schrader","RB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4000,"2.3",0],["44943816","Adam Prentice","RB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4000,"3.6",0],["44943818","Jaret Patterson","RB","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",4000,"0",0],["44943838","Dylan Laube","RB","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",4000,"4.7",0],["44943840","Connor Heyward","RB","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",4000,"2.9",0],["44943842","Roman Hemby","RB","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",4000,"0",0],["44943844","Owen Wright","RB","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",4000,"0",0],["44999510","Brett Rypien","QB","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",4000,"0",0],["44943677","Cole Payton","QB","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943678","Jalen Hurts","QB","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943682","Mason Rudolph","QB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"4.6",0],["44943683","Will Howard","QB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943684","Drew Allar","QB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"0",0],["44943882","Elijah Mitchell","RB","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"6",0],["44943892","Lew Nichols","RB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"3.4",0],["44943894","Travis Homer","RB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"2.3",0],["44943896","Eli Heidenreich","RB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"2.1",0],["44943898","Riley Nowakowski","RB","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"2.7",0],["44999512","Jaydon Blue","RB","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",4000,"2.6",0],["44944529","Bills","DST","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",3900,"8.3",7.09],["44944022","Troy Franklin","WR","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",3900,"4.8",0.03],["44944024","Roman Wilson","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3900,"4.3",0.12],["44944324","Pat Freiermuth","TE","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3900,"8.7",0.99],["44944026","Kalif Raymond","WR","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",3800,"7.6",1.24],["44944326","Juwan Johnson","TE","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",3800,"8.4",0.51],["44944028","Jalen McMillan","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",3800,"3.4",0],["44944530","Bears","DST","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",3700,"8.1",4.91],["44944030","Elic Ayomanor","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",3700,"9.9",13.08],["44944032","Malachi Fields","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3700,"8.5",1.21],["44944328","Jake Ferguson","TE","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",3600,"0",0],["44944034","Josh Cameron","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",3600,"5.5",0.05],["44944036","Brian Thomas Jr.","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",3600,"6.5",0.15],["44944531","Broncos","DST","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",3600,"8.4",7.73],["44944330","Mark Andrews","TE","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",3500,"11.4",12.34],["44944038","Chimere Dike","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",3500,"8.1",3.1],["44944040","Reggie Virgil","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3500,"6.4",0.01],["44944532","Jaguars","DST","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",3500,"9.1",7.11],["44944046","Ja'Kobi Lane","WR","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",3400,"9.3",5.57],["44944048","Xavier Legette","WR","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",3400,"5",0],["44944334","Darren Waller","TE","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",3400,"3",5.35],["44944533","Lions","DST","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",3400,"7.4",4.05],["44944044","Jalen Royals","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",3400,"4.6",0],["44944042","Isaiah Williams","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",3400,"0",0],["44944332","Darnell Washington","TE","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3400,"6.8",1.03],["44944054","John Metchie III","WR","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",3300,"5.1",0.03],["44944338","Gunnar Helm","TE","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",3300,"7.7",4.25],["44944052","Tez Johnson","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",3300,"5.8",3.09],["44944336","Cade Otton","TE","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",3300,"10.1",4.06],["44944050","Darnell Mooney","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3300,"6.2",0.25],["44944056","Travis Hunter","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",3300,"5.6",0.13],["44944534","Steelers","DST","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3300,"8.7",14.28],["44944340","Greg Dulcich","TE","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",3200,"8.2",2.91],["44944064","Rashod Bateman","WR","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",3200,"7.3",2.51],["44944060","Cyrus Allen","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",3200,"6.4",0.09],["44944062","Simi Fehoko","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3200,"5.5",0.15],["44944342","Oronde Gadsden II","TE","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",3200,"5",0.44],["44944058","Marvin Mims Jr.","WR","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",3200,"5.2",0.05],["44944535","Panthers","DST","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",3100,"6.6",3.39],["44944344","Brevyn Spann-Ford","TE","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",3100,"9",3.97],["44944066","Isaac TeSlaa","WR","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",3100,"6.1",0.45],["44944068","Andrew Armstrong","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",3100,"3.7",0.1],["44944072","Devin Duvernay","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3100,"5.4",0.19],["44944346","Mason Taylor","TE","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",3100,"6.8",1.08],["44944070","Jalen Nailor","WR","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",3100,"5.7",0.56],["44944146","Bub Means","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944218","Xavier Gipson","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"3.5",0],["44944074","Greg Dortch","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"3.8",0],["44944076","Skyler Bell","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"4",0],["44944078","Tyrell Shavers","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"3.8",0],["44944080","Joshua Palmer","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"0",0],["44944082","Ja'Mori Maclin","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"0",0],["44944084","Trent Sherfield Sr.","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"3.4",0],["44944086","Stephen Gosnell","WR","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"0",0],["44944160","Chris Bell","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"4.9",0.93],["44944162","Kevin Coleman Jr.","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"5.1",0.92],["44944164","Jalen Tolbert","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"3.9",0.1],["44944166","Jared Wayne","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"0",0],["44944168","Jalen Reagor","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"4.2",0],["44944170","Will Sheppard","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"0",0],["44944172","AJ Henning","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"0",0],["44999518","Brady Boyd","WR","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",3000,"0",0],["44944274","Brycen Tremayne","WR","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"4.3",0],["44944276","Chris Brazzell II","WR","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"0",0],["44944278","Casey Washington","WR","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"0",0],["44944280","Ja'seem Reed","WR","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"3.4",0],["44944282","David Moore","WR","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"3.7",0],["44944294","Devontez Walker","WR","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"3.5",0.1],["44944296","LaJohntay Wester","WR","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"3.9",0],["44944298","Elijah Sarratt","WR","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"3.6",0],["44944300","Gage Larvadain","WR","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"3.4",0],["44944302","Chris Moore","WR","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",3000,"3.3",0],["44944088","Zavion Thomas","WR","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",3000,"4.1",0],["44944090","Jahdae Walker","WR","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",3000,"3.6",0],["44944092","Scotty Miller","WR","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944094","JP Richardson","WR","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944096","Kaden Davis","WR","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944174","Bryce Lance","WR","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",3000,"4.3",0],["44944176","Barion Brown","WR","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",3000,"4.1",0],["44944178","Mason Tipton","WR","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944180","Kevin Austin Jr.","WR","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944182","Cedric Tillman","WR","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",3000,"3.4",0],["44944184","Jalen Cropper","WR","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944098","KaVontae Turpin","WR","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"5",0.28],["44944100","Jonathan Mingo","WR","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"0",0],["44944102","Camden Brown","WR","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"3.8",0],["44944104","Anthony Smith","WR","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"0",0],["44944106","Jordan Hudson","WR","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"3.6",0],["44944128","Xavier Restrepo","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"4.6",0.72],["44944130","K.J. Osborn","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"0",0],["44944132","Tyren Montgomery","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"0",0],["44999520","Jason Brownlee","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"0",0],["44999526","Jamari Thrash","WR","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",3000,"0",0],["44944116","Tay Martin","WR","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",3000,"3.5",0],["44944118","DeAndre Carter","WR","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",3000,"4.3",0],["44944120","Tom Kennedy","WR","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",3000,"0",0],["44944122","Kendrick Law","WR","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",3000,"0",0],["44944124","Dominic Lovett","WR","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",3000,"3.3",0],["44944126","Lucky Jackson","WR","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",3000,"0",0],["44944264","Ted Hurst III","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",3000,"4.5",0],["44944266","Kameron Johnson","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",3000,"3.4",0],["44944268","Garrett Greene","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",3000,"0",0],["44944270","Dean Patterson IV","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",3000,"0",0],["44944272","Eric Rivers Jr.","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",3000,"0",0],["44999528","David Sills V","WR","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",3000,"3.8",0],["44944134","Jacob De Jesus","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944136","Tyquan Thornton","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944138","Jeff Caldwell","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944140","Omari Evans","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944142","Jimmy Holiday","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944144","Justin Watson","WR","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",3000,"3.6",0],["44944222","Zay Jones","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"4.3",0.23],["44944224","Harrison Wallace III","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"4",0.2],["44944226","Michael Wilson","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944228","Kendrick Bourne","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944230","Jalen Brooks","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944232","Phillip Dorsett II","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944234","Shedrick Jackson","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944236","James Proche II","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44999522","Ronnie Bell","WR","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",3000,"0",0],["44944186","Charlie Jones","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"0",0],["44944188","Jalin Hyatt","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"4.4",0],["44944190","Calvin Austin III","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"0",0],["44944192","Braxton Berrios","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"0",0],["44944194","Gunner Olszewski","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"0",0],["44944196","Dalen Cambre","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"3.5",0],["44944198","Dontae Fleming","WR","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"0",0],["44944284","CJ Williams","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"3.4",0],["44944286","Trebor Pena","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"0",0],["44944288","Tim Jones","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"0",0],["44944290","Austin Trammell","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"0",0],["44944292","Michael Wortham","WR","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",3000,"0",0],["44944200","Malik McClain","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"3.8",0],["44944202","Tim Patrick","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"3.9",0],["44944204","Arian Smith","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"0",0],["44944206","Sterling Shepard","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"3.8",0],["44944208","Jamaal Pritchett","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"3.4",0],["44944210","Joseph Manjack","WR","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"0",0],["44944252","KeAndre Lambert-Smith","WR","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"4.1",0.08],["44944254","Brenen Thompson","WR","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"3.6",0],["44944256","Derius Davis","WR","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"4",0],["44944258","Theo Wease Jr.","WR","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"3.7",0],["44944260","Tejhaun Palmer","WR","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"0",0],["44944262","Luke Grimm","WR","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"0",0],["44944350","David Njoku","TE","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"3.9",0.36],["44944536","Chargers","DST","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",3000,"7.2",9.55],["44944108","Lil'Jordan Humphrey","WR","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",3000,"3.9",0],["44944110","Kolbe Katsis","WR","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",3000,"0",0],["44944112","Michael Bandy","WR","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",3000,"0",0],["44944114","Dane Key","WR","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",3000,"0",0],["44944148","Jack Bech","WR","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",3000,"5.8",0.28],["44944150","Dont'e Thornton Jr.","WR","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",3000,"3.7",0],["44944152","Dareke Young","WR","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",3000,"3.8",0],["44944154","Malik Benson","WR","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",3000,"3.7",0],["44944156","Cody White","WR","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",3000,"3.6",0],["44944158","Deven Thompkins","WR","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",3000,"0",0],["44944348","Evan Engram","TE","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",3000,"6.4",1.65],["44944212","Elijah Moore","WR","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"4.1",0],["44944214","Britain Covey","WR","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"3.4",0],["44944216","Johnny Wilson","WR","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944220","Erik Ezukanma","WR","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944238","Ben Skowronek","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"3.8",0],["44944240","Brandon Smith","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"4",0],["44944242","Kaden Wetjen","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"3.7",0],["44944244","Cole Burgess","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944246","Brandon Johnson","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"3.6",0],["44944248","Marquez Valdes-Scantling","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944250","Isaiah Hodgins","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"0",0],["44999524","Quentin Skinner","WR","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"0",0],["45023811","Max Hurleman","WR","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",3000,"0",0],["44944352","Tommy Tremble","TE","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",2900,"7.6",3.11],["44944537","Cowboys","DST","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",2900,"6.4",2.53],["44944354","Kenyon Sadiq","TE","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",2900,"5.7",0.8],["44944356","Dawson Knox","TE","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",2800,"4.6",5],["44944538","Ravens","DST","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",2800,"6.9",4],["44944358","Noah Fant","TE","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",2800,"3.8",0.21],["44944360","Noah Gray","TE","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",2700,"6",0.56],["44944362","Charlie Kolar","TE","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",2700,"4.2",2.95],["44944539","Eagles","DST","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",2700,"6.3",3.42],["44944364","Elijah Higgins","TE","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",2600,"4.1",0.64],["44944366","Nate Boerkircher","TE","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",2600,"3.5",0.36],["44944540","Jets","DST","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",2600,"7.2",8.65],["44944370","Jackson Hawes","TE","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",2500,"3.4",0],["44944372","Keleki Latu","TE","BUF","MIA",1,"MIA@BUF",29922540,"Sun 1:00 PM",2500,"3.2",0],["44944440","Will Kacmarek","TE","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",2500,"3.6",0],["44944442","Seydou Traore","TE","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",2500,"3.4",0],["44944444","Justin Joly","TE","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",2500,"3",0],["44944446","Cole Turner","TE","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",2500,"0",0],["44944448","Tre Watson","TE","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",2500,"0",0],["44944506","Mitchell Evans","TE","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",2500,"3.8",0.15],["44944508","Feleipe Franks","TE","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",2500,"3.1",0],["44944510","Ja'Tavion Sanders","TE","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",2500,"0",0],["44944518","Josh Cuevas","TE","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",2500,"3.7",0.09],["44944520","Matt Hibner","TE","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",2500,"3.5",0],["44944522","Durham Smythe","TE","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",2500,"0",0],["44944524","Ty Pezza","TE","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",2500,"0",0],["44944526","Nick Vannett","TE","BAL","CAR",0,"BAL@CAR",29922540,"Sun 1:00 PM",2500,"3.2",0],["44999530","Joshua Simon","TE","CAR","BAL",1,"BAL@CAR",29922540,"Sun 1:00 PM",2500,"0",0],["44944374","Sam Roush","TE","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",2500,"3.8",0.17],["44944376","Stephen Carlson","TE","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",2500,"3.5",0],["44944378","Hayden Large","TE","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",2500,"0",0],["44944380","Cole Kmet","TE","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",2500,"0",0],["44944382","Nikola Kalinic","TE","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",2500,"0",0],["44944384","Qadir Ismail","TE","CHI","NO",1,"NO@CHI",29922540,"Sun 1:00 PM",2500,"0",0],["44944450","Oscar Delp","TE","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",2500,"3.6",0],["44944452","Moliki Matavao","TE","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",2500,"0",0],["44944454","Treyton Welch","TE","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",2500,"3",0],["44944456","Matt Lauter","TE","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",2500,"0",0],["44944458","Zach Wood","TE","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",2500,"0",0],["44944368","Daniel Bellinger","TE","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",2500,"3.7",1.17],["44944386","Luke Schoonmaker","TE","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",2500,"4",0.33],["44944388","James Mitchell","TE","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",2500,"3.1",0],["44944390","Princeton Fant","TE","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",2500,"0",0],["44944392","Michael Trigg","TE","DAL","TEN",1,"TEN@DAL",29922540,"Sun 1:00 PM",2500,"0",0],["44944416","David Martin-Robinson","TE","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",2500,"3.1",0],["44944418","Kylen Granson","TE","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",2500,"3.5",0],["44944420","Jaren Kanak","TE","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",2500,"0",0],["44944422","Joel Wilson","TE","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",2500,"0",0],["44944406","Brock Wright","TE","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",2500,"3.8",0],["44944408","Tyler Conklin","TE","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",2500,"3.5",0],["44944410","Miles Kitselman","TE","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",2500,"0",0],["44944412","Thomas Gordon","TE","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",2500,"0",0],["44944414","Jackson Meeks","TE","DET","TB",1,"TB@DET",29922540,"Sun 1:00 PM",2500,"3.5",0],["44944496","Payne Durham","TE","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",2500,"3.4",0],["44944498","Bauer Sharp","TE","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",2500,"3.3",0],["44944500","Ko Kieft","TE","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",2500,"3.1",0],["44944502","Evan Deckers","TE","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",2500,"0",0],["44944504","CJ Dippre","TE","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",2500,"0",0],["44944541","Buccaneers","DST","TB","DET",0,"TB@DET",29922540,"Sun 1:00 PM",2500,"6.4",1],["44944424","Jake Briningstool","TE","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",2500,"3.6",0],["44944426","Jared Wiley","TE","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",2500,"0",0],["44944428","John Michael Gyllenborg","TE","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",2500,"0",0],["44944430","Thomas Odukoya","TE","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",2500,"0",0],["44944432","James Winchester","TE","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",2500,"0",0],["44944482","Hunter Long","TE","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",2500,"3.7",0.04],["44944484","Teagan Quitoriano","TE","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",2500,"3",0],["44944486","Tip Reiman","TE","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",2500,"0",0],["44944488","Shawn Bowman","TE","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",2500,"0",0],["44999534","John FitzPatrick","TE","KC","ARI",1,"ARI@KC",29922540,"Sun 1:00 PM",2500,"0",0],["44944460","Theo Johnson","TE","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",2500,"3.6",0.31],["44944462","Chris Manhertz","TE","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",2500,"3.3",0],["44944464","Thomas Fidone II","TE","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",2500,"3.1",0],["44944466","Ben Mann","TE","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",2500,"0",0],["44944512","Tanner Koziol","TE","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",2500,"3.6",0],["44944514","Quintin Morris","TE","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",2500,"3.3",0],["44944516","Brenden Bates","TE","JAX","NYG",0,"JAX@NYG",29922745,"Sun 4:25 PM",2500,"0",0],["44944468","Jeremy Ruckert","TE","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",2500,"3.6",0],["44944470","Jelani Woods","TE","NYJ","LAC",0,"NYJ@LAC",29922725,"Sun 4:05 PM",2500,"3.1",0],["44944494","Patrick Herbert","TE","LAC","NYJ",1,"NYJ@LAC",29922725,"Sun 4:05 PM",2500,"3",0],["44944394","Adam Trautman","TE","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",2500,"3.8",0.03],["44944396","Nate Adkins","TE","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",2500,"3.4",0],["44944398","Dallen Bentley","TE","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",2500,"0",0],["44944400","Caleb Lohner","TE","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",2500,"0",0],["44944402","Mitchell Fraboni","TE","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",2500,"0",0],["44944404","Lucas Krull","TE","DEN","LV",1,"LV@DEN",29922745,"Sun 4:25 PM",2500,"0",0],["44944434","Ian Thomas","TE","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",2500,"3.6",0],["44944436","Carter Runyon","TE","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",2500,"3.2",0],["44944438","Patrick Gurd","TE","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",2500,"0",0],["44944472","Eli Stowers","TE","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",2500,"3.6",0],["44944474","Johnny Mundt","TE","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",2500,"3.3",0],["44944476","Grant Calcaterra","TE","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",2500,"3.3",0],["44944478","Zach Ertz","TE","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",2500,"3.2",0],["44944480","Rocco Underwood","TE","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",2500,"0",0],["44944490","Robert Tonyan","TE","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",2500,"3.3",0],["44944492","Lake McRee","TE","PIT","PHI",0,"PIT@PHI",29922540,"Sun 1:00 PM",2500,"0",0],["44999532","Hayden Rucci","TE","PHI","PIT",1,"PIT@PHI",29922540,"Sun 1:00 PM",2500,"3.1",0],["44944542","Raiders","DST","LV","DEN",0,"LV@DEN",29922745,"Sun 4:25 PM",2400,"6.2",0.97],["44944543","Titans","DST","TEN","DAL",0,"TEN@DAL",29922540,"Sun 1:00 PM",2300,"5.2",0.28],["44944544","Saints","DST","NO","CHI",0,"NO@CHI",29922540,"Sun 1:00 PM",2200,"5.9",1.45],["44944545","Giants","DST","NYG","JAX",1,"JAX@NYG",29922745,"Sun 4:25 PM",2200,"6.3",3.25],["44944546","Dolphins","DST","MIA","BUF",0,"MIA@BUF",29922540,"Sun 1:00 PM",2100,"5.1",1.09],["44944547","Cardinals","DST","ARI","KC",0,"ARI@KC",29922540,"Sun 1:00 PM",2000,"4.9",2.4]]}</script>
-<script>
-const initialMarkup = document.documentElement.outerHTML;
+<script type="module">
 /* ---------- Pure logic: CSV parsing, matching, optimizer, exports ---------- */
 const SLOTS = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', 'FLEX', 'DST'];
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'DST'];
@@ -794,31 +792,28 @@ function projectionsCsv(players) {
     ...players.map(p => csvLine([p.id, p.name, p.pos, p.team, p.salary, p.projection, p.ownership ?? '']))].join('\r\n') + '\r\n';
 }
 /* ---------- end pure logic ---------- */
-if (typeof module !== 'undefined') module.exports = {SLOTS, POSITIONS, parseCsv, readDraftKings, readProjections, applyProjections, optimize, lineupsCsv, entriesCsv, projectionsCsv, kickoff, nameKey};
 
-
-/* ---------- Page ---------- */
+/* ---------- Shared page helpers ---------- */
 const $ = id => document.getElementById(id);
 const esc = text => String(text).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const money = n => '$' + Number(n).toLocaleString('en-US');
 const PLAYER_KEYS = ['id', 'name', 'pos', 'team', 'opp', 'home', 'game', 'start', 'when', 'salary', 'projection', 'ownership'];
-const PRESETS = [
-  {id: 'cash', name: 'Cash', stack: 0, bring: 0,
-    note: 'Double-ups, 50/50s and head-to-heads. Highest total projection, no stack required, no fading a player for being popular.'},
-  {id: 'gpp', name: 'Tournament', stack: 2, bring: 1,
-    note: 'Starts from the playbook default of QB + 2 pass catchers and a bring-back. That is a preference, not a requirement, so change it when a different story fits. Ownership matters more as fields get larger and payouts more top-heavy.'}
-];
+let slate = null, baseline = [], players = [], byId = new Map();
 
-let slate = JSON.parse($('slateData').textContent);
-let baseline = slate.players.map(row => ({...Object.fromEntries(PLAYER_KEYS.map((key, i) => [key, row[i]])), action: '', cap: null}));
-let players = baseline.map(p => ({...p}));
-let byId = new Map(players.map(p => [p.id, p]));
-let entries = null, results = [], preset = PRESETS[1], worker = null;
-const assignments = new Map();
-const view = {tab: 'players', pos: 'ALL', sort: 'projection', dir: -1};
-
-/* --- remembered edits (this browser only) --- */
-const storeKey = () => 'slate-lab:' + slate.name;
+async function loadSlate(url) {
+  const response = await fetch(url, {cache: 'no-cache'});
+  if (!response.ok) throw Error('Slate data did not load.');
+  slate = await response.json();
+  baseline = slate.players.map(row => ({...Object.fromEntries(PLAYER_KEYS.map((key, i) => [key, row[i]])), action: '', cap: null}));
+  setPlayers(baseline.map(p => ({...p})));
+  loadEdits();
+}
+function setPlayers(list) {
+  players = list;
+  byId = new Map(players.map(p => [p.id, p]));
+}
+/* Edits are remembered in this browser only, and shared by the Optimizer and Lineup Setup pages. */
+const storeKey = () => 'dfs-optimizer:' + slate.name;
 function saveEdits() {
   try {
     const base = new Map(baseline.map(p => [p.id, p]));
@@ -835,6 +830,25 @@ function loadEdits() {
     const edits = JSON.parse(localStorage.getItem(storeKey()) || '{}');
     for (const p of players) if (edits[p.id]) [p.projection, p.ownership, p.action, p.cap = null] = edits[p.id];
   } catch {}
+}
+function editCounts() {
+  const base = new Map(baseline.map(p => [p.id, p]));
+  return {
+    locks: players.filter(p => p.action === 'lock').length,
+    outs: players.filter(p => p.action === 'out').length,
+    edited: players.filter(p => p.projection !== base.get(p.id).projection || p.ownership !== base.get(p.id).ownership).length,
+    caps: players.filter(p => p.cap != null).length
+  };
+}
+const asRows = list => list.filter(p => p.projection !== '').map(p => ({id: p.id, name: p.name, pos: p.pos, team: p.team, projection: Number(p.projection), ownership: p.ownership}));
+// Swap in a DraftKings file's player list, carrying projections, locks and limits across.
+function adoptDraftKings(dk) {
+  const carriedBase = applyProjections(dk.players, asRows(baseline));
+  const carried = applyProjections(dk.players, asRows(players));
+  const kept = new Map(players.filter(p => p.action || p.cap != null).map(p => [p.id, p]));
+  baseline = carriedBase.players.map(p => ({...p, cap: null}));
+  setPlayers(carried.players.map(p => ({...p, action: kept.get(p.id)?.action || '', cap: kept.get(p.id)?.cap ?? null})));
+  return {projected: players.filter(p => p.projection !== '').length, viaName: carried.viaName};
 }
 
 function toast(message) {
@@ -858,6 +872,219 @@ async function copy(text, what) {
   catch { toast('This browser blocked copying. Use the download button.'); }
 }
 
+function preflight() {
+  const locks = players.filter(p => p.action === 'lock');
+  const missing = locks.find(p => !(Number(p.projection) > 0));
+  if (missing) return missing.name + ' is locked but has no projection. A player projected at 0 is treated as out, so enter a projection or remove the lock.';
+  const limit = {QB: 1, RB: 3, WR: 4, TE: 2, DST: 1};
+  for (const pos of POSITIONS) {
+    const n = locks.filter(p => p.pos === pos).length;
+    if (n > limit[pos]) return 'You locked ' + n + ' ' + pos + 's. A lineup holds at most ' + limit[pos] + '.';
+  }
+  if (locks.filter(p => ['RB', 'WR', 'TE'].includes(p.pos)).length > 7) return 'You locked more than 7 runners and pass catchers.';
+  if (locks.reduce((sum, p) => sum + p.salary, 0) > 50000) return 'Your locked players cost more than $50,000.';
+  if (players.filter(p => Number(p.projection) > 0 && p.action !== 'out').length < 9) return 'Fewer than 9 players have a projection. Load projections or enter them in the Optimizer.';
+  return '';
+}
+const enginePlayers = () => players.map(p => ({id: p.id, pos: p.pos, team: p.team, game: p.game, start: p.start, salary: p.salary, projection: p.projection, ownership: p.ownership, action: p.action, cap: p.cap}));
+// Runs the optimizer off the main thread. Returns {promise, stop}.
+function runOptimizer(rules, onProgress) {
+  const payload = {rules, players: enginePlayers()};
+  let worker = null;
+  const promise = new Promise((resolve, reject) => {
+    const inline = () => setTimeout(() => resolve(optimize(payload.players, payload.rules, () => {})), 30);
+    try {
+      const url = URL.createObjectURL(new Blob([optimize.toString(), '\nself.onmessage = e => self.postMessage(optimize(e.data.players, e.data.rules, n => self.postMessage(n)));'], {type: 'text/javascript'}));
+      worker = new Worker(url);
+      URL.revokeObjectURL(url);
+      worker.onmessage = ({data}) => {
+        if (typeof data === 'number') return onProgress(data);
+        worker.terminate();
+        resolve(data);
+      };
+      worker.onerror = () => { worker = null; inline(); };
+      worker.postMessage(payload);
+    } catch { inline(); }
+    runOptimizer.cancel = () => { if (worker) worker.terminate(); reject(Error('stopped')); };
+  });
+  return {promise, stop: () => runOptimizer.cancel()};
+}
+
+// Facts about one lineup, recalculated from the current player pool.
+function describe(ids) {
+  const line = ids.map(id => byId.get(id));
+  if (line.some(p => !p)) return null;
+  const qb = line[0];
+  const mates = line.filter((p, i) => i > 0 && p.team === qb.team && (p.pos === 'WR' || p.pos === 'TE'));
+  const backs = line.filter(p => p.game === qb.game && p.team !== qb.team && p.pos !== 'DST');
+  const dst = line[8];
+  const facing = line.filter(p => p.pos !== 'DST' && p.team === dst.opp);
+  const salary = line.reduce((sum, p) => sum + p.salary, 0);
+  const projection = line.reduce((sum, p) => sum + (Number(p.projection) || 0), 0);
+  const own = line.reduce((sum, p) => sum + (p.ownership || 0), 0);
+  const flags = [];
+  if (salary < 48000) flags.push('Under $48,000');
+  else if (50000 - salary > 500) flags.push(money(50000 - salary) + ' unused');
+  if (facing.length) flags.push('DST faces ' + facing.map(p => p.name).join(', '));
+  const shape = qb.team + ' ' + (mates.length ? 'QB + ' + mates.length : 'QB alone') + (backs.length ? ', ' + backs.length + ' bring-back' + (backs.length > 1 ? 's' : '') + ' (' + qb.opp + ')' : ', no bring-back');
+  return {line, qb, mates, backs, salary, projection, own, flags, shape};
+}
+function lineupRows(f) {
+  return f.line.map((p, i) => {
+    const dot = i === 0 || f.mates.includes(p) ? '<i class="dot full" title="QB stack"></i>' : f.backs.includes(p) ? '<i class="dot back" title="Bring-back"></i>' : '';
+    return '<tr><td class="slot">' + SLOTS[i] + '</td><td class="nm">' + dot + esc(p.name) + '</td><td class="muted">' + esc(p.team) + '</td><td class="r">' + money(p.salary) + '</td><td class="r">' + Number(p.projection).toFixed(1) + '</td></tr>';
+  }).join('');
+}
+function bars(pairs, n, label) {
+  return pairs.map(([text, count, pos]) => {
+    const pct = Math.round(100 * count / n);
+    return '<div class="expo-row"><span class="pos ' + pos + '">' + (label || pos) + '</span><div class="nm"><i style="width:' + pct + '%"></i><span>' + esc(text) + '</span></div><span class="r num">' + pct + '%</span></div>';
+  }).join('');
+}
+// Exposure across a list of lineups (each an array of 9 ids). Returns HTML for quarterbacks, games and players.
+function exposureHtml(lineups) {
+  const n = lineups.length, use = new Map(), qbs = new Map(), games = new Map();
+  for (const ids of lineups) {
+    const line = ids.map(id => byId.get(id));
+    for (const p of line) use.set(p.id, (use.get(p.id) || 0) + 1);
+    qbs.set(line[0].id, (qbs.get(line[0].id) || 0) + 1);
+    const perGame = new Map();
+    for (const p of line) perGame.set(p.game, (perGame.get(p.game) || 0) + 1);
+    for (const [game, count] of perGame) if (count >= 3) games.set(game, (games.get(game) || 0) + 1);
+  }
+  const desc = (a, b) => b[1] - a[1];
+  return {
+    qb: bars([...qbs].sort(desc).map(([id, count]) => [byId.get(id).name, count, 'QB']), n),
+    game: bars([...games].sort(desc).map(([game, count]) => [game, count, 'FLEX']), n, 'GM') || '<span class="small muted">None</span>',
+    player: bars([...use].sort((a, b) => b[1] - a[1] || byId.get(b[0]).salary - byId.get(a[0]).salary).map(([id, count]) => [byId.get(id).name, count, byId.get(id).pos]), n)
+  };
+}
+
+/* Lineups built in the Optimizer are saved in this browser so Lineup Setup can distribute them. */
+const poolKey = () => 'dfs-optimizer:lineups:' + slate.name;
+function loadPool() {
+  try {
+    const list = JSON.parse(localStorage.getItem(poolKey()) || '[]');
+    return Array.isArray(list) ? list.filter(item => item && Array.isArray(item.ids) && item.ids.length === 9) : [];
+  } catch { return []; }
+}
+function savePool(list) {
+  try { localStorage.setItem(poolKey(), JSON.stringify(list.slice(-1000))); return true; } catch { return false; }
+}
+function addToPool(lineups, kind) {
+  const list = loadPool();
+  const seen = new Set(list.map(item => lineupKey(item.ids)));
+  let added = 0;
+  for (const ids of lineups) {
+    const key = lineupKey(ids);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    list.push({ids, kind});
+    added++;
+  }
+  savePool(list);
+  return {added, total: list.length};
+}
+// A saved lineup is usable when every player is still in the pool, projected, not ruled out, and under the cap.
+function usable(ids) {
+  const line = ids.map(id => byId.get(id));
+  return line.every(p => p && p.action !== 'out' && Number(p.projection) > 0) && line.reduce((sum, p) => sum + p.salary, 0) <= 50000;
+}
+
+/* ---------- DraftKings entries ---------- */
+const hasLineup = entry => entry.current.some(Boolean);
+const lineupKey = ids => ids.slice().sort().join(',');
+const feeOf = entry => Number(String(entry.fee).replace(/[^0-9.]/g, '')) || 0;
+// Read from the contest name only: these are labels, not verified contest settings.
+function contestKind(name) {
+  if (/double up|50\/50|fifty|head to head|h2h/i.test(name)) return 'Cash';
+  if (/satellite|supersat|qualifier/i.test(name)) return 'Qualifier';
+  return 'Tournament';
+}
+function contestLimit(name) {
+  const max = /\[(\d+) Entry Max\]/i.exec(name);
+  if (max) return Number(max[1]);
+  return /single entry/i.test(name) ? 1 : null;
+}
+// Pre-upload checks. assignments: Map(entryId -> {ids}).
+function validateExport(entries, assignments) {
+  const checks = [];
+  const add = (level, text) => checks.push({level, text});
+  const rows = entries.filter(entry => assignments.has(entry.id));
+  if (!rows.length) return {verdict: 'idle', checks};
+  const limit = {QB: [1, 1], RB: [2, 3], WR: [3, 4], TE: [1, 2], DST: [1, 1]};
+  let structural = 0, inactive = 0, flexLate = 0, review = 0, repeats = 0;
+  const perContest = new Map();
+  for (const entry of rows) {
+    const ids = assignments.get(entry.id).ids;
+    const line = ids.map(id => byId.get(id));
+    const key = lineupKey(ids);
+    if (!perContest.has(entry.contestId)) perContest.set(entry.contestId, new Set());
+    if (perContest.get(entry.contestId).has(key)) repeats++;
+    perContest.get(entry.contestId).add(key);
+    if (ids.length !== 9 || line.some(p => !p) || new Set(ids).size !== 9) { structural++; continue; }
+    const slotsOk = line.every((p, i) => SLOTS[i] === 'FLEX' ? ['RB', 'WR', 'TE'].includes(p.pos) : p.pos === SLOTS[i]);
+    const counts = Object.fromEntries(POSITIONS.map(pos => [pos, line.filter(p => p.pos === pos).length]));
+    const salary = line.reduce((sum, p) => sum + p.salary, 0);
+    if (!slotsOk || POSITIONS.some(pos => counts[pos] < limit[pos][0] || counts[pos] > limit[pos][1]) || salary > 50000 || new Set(line.map(p => p.game)).size < 2) structural++;
+    if (line.some(p => p.action === 'out' || !(Number(p.projection) > 0))) inactive++;
+    const flex = line[7];
+    if (line.slice(1, 7).some(p => p.pos === flex.pos && p.start > flex.start)) flexLate++;
+    if (salary < 48000 || 50000 - salary > 500) review++;
+  }
+  add(structural ? 'fail' : 'pass', structural ? structural + ' assigned lineups break a DraftKings roster, salary cap or two-game rule, or use a player missing from this file.' : 'Every assigned lineup has 9 valid players in legal slots, at or under $50,000, from at least two games.');
+  add(inactive ? 'fail' : 'pass', inactive ? inactive + ' assigned lineups use a player marked Out or left without a projection. Rebuild the slate.' : 'No assigned lineup uses a player marked Out or without a projection. Injury status itself is not checked here.');
+  const csv = entriesCsv(entries, assignments);
+  const back = parseCsv(csv);
+  const expected = [...ENTRY_HEAD, ...SLOTS];
+  const known = new Set(entries.map(entry => entry.id));
+  const seen = new Set();
+  let readOk = back.length === rows.length + 1 && expected.every((cell, i) => back[0][i] === cell);
+  back.slice(1).forEach((row, i) => {
+    const entry = rows[i];
+    if (!entry || row[0] !== entry.id || row[2] !== entry.contestId || seen.has(row[0]) || !known.has(row[0]) ||
+        assignments.get(entry.id).ids.some((id, j) => row[4 + j] !== id)) readOk = false;
+    seen.add(row[0]);
+  });
+  add(readOk ? 'pass' : 'fail', readOk ? 'Export read back: ' + rows.length + ' rows, each original entry ID and contest ID once, player IDs in DraftKings slot order.' : 'The export did not read back correctly. Do not upload it.');
+  add(flexLate ? 'warn' : 'pass', flexLate ? flexLate + ' lineups could hold a later kickoff in FLEX.' : 'FLEX holds the latest kickoff the roster allows in every lineup.');
+  if (repeats) add('warn', repeats + (repeats === 1 ? ' entry repeats' : ' entries repeat') + ' a lineup already used in the same contest.');
+  else add('pass', 'No lineup is repeated inside a contest.');
+  if (review) add('warn', review + (review === 1 ? ' lineup is' : ' lineups are') + ' under $48,000 or over $500 unused. That is legal; check that it is on purpose.');
+  const contests = new Map();
+  for (const entry of entries) contests.set(entry.contestId, {name: entry.contest, n: (contests.get(entry.contestId)?.n || 0) + 1});
+  const over = [...contests.values()].filter(c => contestLimit(c.name) != null && c.n > contestLimit(c.name)).length;
+  const unknown = [...contests.values()].filter(c => contestLimit(c.name) == null).length;
+  if (over) add('fail', over + ' contests hold more of your entries than the limit in their name.');
+  else if (unknown) add('warn', 'Entry limits: ' + (contests.size - unknown) + ' contests are within the limit in their name. ' + unknown + ' do not state a limit, so those are not verified.');
+  else add('pass', 'Every contest is within the entry limit stated in its name.');
+  const verdict = checks.some(c => c.level === 'fail') ? 'bad' : checks.some(c => c.level === 'warn') ? 'warn' : 'go';
+  return {verdict, checks, csv};
+}
+function showVerdict(check) {
+  const label = {idle: 'NOT CHECKED', go: 'GO', warn: 'GO WITH WARNINGS', bad: 'NO-GO'}[check.verdict];
+  $('verdict').textContent = label;
+  $('verdict').className = 'pill ' + (check.verdict === 'go' ? '' : check.verdict);
+  $('verdictLine').textContent = check.verdict === 'idle' ? 'Build your slate to run the export checks.' :
+    check.verdict === 'bad' ? 'The export is blocked until the failed checks are fixed.' :
+    check.checks.filter(c => c.level === 'pass').length + ' checks passed, ' + check.checks.filter(c => c.level === 'warn').length + ' warnings.';
+  $('checks').innerHTML = check.checks.map(c => '<li class="' + c.level + '"><b>' + c.level.toUpperCase() + '</b><span>' + esc(c.text) + '</span></li>').join('');
+}
+/* ---------- end shared helpers ---------- */
+
+
+/* ---------- Optimizer page ---------- */
+const PRESETS = [
+  {id: 'cash', name: 'Cash', stack: 0, bring: 0,
+    note: 'Double-ups, 50/50s and head-to-heads. Highest total projection, no stack required, no fading a player for being popular.'},
+  {id: 'gpp', name: 'Tournament', stack: 2, bring: 1,
+    note: 'Starts from the playbook default of QB + 2 pass catchers and a bring-back. That is a preference, not a requirement, so change it when a different story fits. Ownership matters more as fields get larger and payouts more top-heavy.'}
+];
+try { await loadSlate('slate.json'); }
+catch { document.querySelector('.shell').outerHTML = '<p class="fatal">This week\'s slate did not load. Refresh the page to try again.</p>'; throw Error('no slate'); }
+let results = [], preset = PRESETS[1], running = null;
+const view = {tab: 'players', pos: 'ALL', sort: 'projection', dir: -1};
+
 /* --- header and tabs --- */
 function renderSlate() {
   const games = new Set(players.map(p => p.game)).size;
@@ -866,12 +1093,12 @@ function renderSlate() {
 }
 function showTab(name) {
   view.tab = name;
-  for (const tab of ['players', 'lineups', 'entries']) {
+  for (const tab of ['players', 'lineups', 'saved']) {
     $('tab-' + tab).setAttribute('aria-selected', String(tab === name));
     $('view-' + tab).hidden = tab !== name;
   }
 }
-for (const tab of ['players', 'lineups', 'entries']) $('tab-' + tab).onclick = () => showTab(tab);
+for (const tab of ['players', 'lineups', 'saved']) $('tab-' + tab).onclick = () => showTab(tab);
 
 /* --- players --- */
 const baseOf = id => baseline.find(p => p.id === id);
@@ -914,10 +1141,7 @@ function renderPool() {
   renderPoolLine(shown.length);
 }
 function renderPoolLine(shownCount) {
-  const base = new Map(baseline.map(p => [p.id, p]));
-  const locks = players.filter(p => p.action === 'lock').length, outs = players.filter(p => p.action === 'out').length;
-  const edited = players.filter(p => p.projection !== base.get(p.id).projection || p.ownership !== base.get(p.id).ownership).length;
-  const caps = players.filter(p => p.cap != null).length;
+  const {locks, outs, edited, caps} = editCounts();
   if (shownCount != null) renderPoolLine.shown = shownCount;
   $('poolLine').textContent = renderPoolLine.shown + ' shown · ' + locks + ' locked · ' + outs + ' out · ' + edited + ' edited · ' + caps + ' with a personal limit';
   $('reset').disabled = !(locks || outs || edited || caps);
@@ -926,7 +1150,8 @@ function changed() {
   saveEdits();
   renderPoolLine();
   renderSlate();
-  if (results.length) { $('stale').hidden = false; renderLineups(); } else renderEntries();
+  if (results.length) { $('stale').hidden = false; renderLineups(); }
+  renderSaved();
 }
 $('pool').addEventListener('click', event => {
   const button = event.target.closest('.act button');
@@ -969,48 +1194,32 @@ $('posChips').onclick = event => {
 $('q').oninput = renderPool;
 $('hideZero').onchange = renderPool;
 $('reset').onclick = () => {
-  players = baseline.map(p => ({...p}));
-  byId = new Map(players.map(p => [p.id, p]));
+  setPlayers(baseline.map(p => ({...p})));
   changed();
   renderPool();
   toast('Projections, locks, exclusions and limits reset.');
 };
 
 /* --- loading files --- */
-const asRows = list => list.filter(p => p.projection !== '').map(p => ({id: p.id, name: p.name, pos: p.pos, team: p.team, projection: Number(p.projection), ownership: p.ownership}));
-function clearBuild() {
-  results = [];
-  assignments.clear();
-  renderLineups();
-}
-async function loadDraftKings(file, statusNode) {
+$('dkFile').onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
   if (!file) return;
+  const status = $('fileStatus');
   try {
     const dk = readDraftKings(await file.text());
-    const carriedBase = applyProjections(dk.players, asRows(baseline));
-    const carried = applyProjections(dk.players, asRows(players));
-    const actions = new Map(players.filter(p => p.action || p.cap != null).map(p => [p.id, p]));
-    baseline = carriedBase.players;
-    baseline = baseline.map(p => ({...p, cap: null}));
-    players = carried.players.map(p => ({...p, action: actions.get(p.id)?.action || '', cap: actions.get(p.id)?.cap ?? null}));
-    byId = new Map(players.map(p => [p.id, p]));
-    entries = dk.entries;
-    clearBuild();
-    const projected = players.filter(p => p.projection !== '').length;
-    let message = 'Loaded ' + dk.players.length + ' players' + (entries ? ' and ' + entries.length + ' entries' : '') + ' from ' + file.name + '. ' +
-      projected + ' have a projection' + (carried.viaName ? ' (' + carried.viaName + ' matched by name)' : '') + '.';
+    const carried = adoptDraftKings(dk);
+    results = [];
+    let message = 'Loaded ' + dk.players.length + ' players from ' + file.name + '. ' + carried.projected + ' have a projection' + (carried.viaName ? ' (' + carried.viaName + ' matched by name)' : '') + '.';
     if (dk.skipped) message += ' Skipped ' + dk.skipped + ' rows for games that are closed or unreadable.';
-    const warn = projected < 20;
+    if (dk.entries) message += ' This file also holds ' + dk.entries.length + ' contest entries. Use Lineup Setup to fill them.';
+    const warn = carried.projected < 20;
     if (warn) message += ' This looks like a different slate. Load a projections CSV for it.';
-    for (const node of [$('fileStatus'), statusNode]) if (node) { node.textContent = message; node.className = 'status' + (warn ? ' warn' : ''); }
+    status.textContent = message;
+    status.className = 'status' + (warn ? ' warn' : '');
     renderAll();
-    if (entries && view.tab === 'entries') toast('Entries loaded. Build lineups, then assign them here.');
-  } catch (error) {
-    for (const node of [$('fileStatus'), statusNode]) if (node) { node.textContent = error.message; node.className = 'status bad'; }
-  }
-}
-$('dkFile').onchange = event => { loadDraftKings(event.target.files[0]); event.target.value = ''; };
-$('dkFile2').onchange = event => { loadDraftKings(event.target.files[0], $('entryLoadStatus')); event.target.value = ''; };
+  } catch (error) { status.textContent = error.message; status.className = 'status bad'; }
+};
 $('projFile').onchange = async event => {
   const file = event.target.files[0];
   event.target.value = '';
@@ -1020,8 +1229,7 @@ $('projFile').onchange = async event => {
     const parsed = readProjections(await file.text());
     const merged = applyProjections(players, parsed.list);
     if (!merged.matched) throw Error('None of the rows in ' + file.name + ' match a player on this slate. Rows need a DraftKings ID, or a name and team.');
-    players = merged.players;
-    byId = new Map(players.map(p => [p.id, p]));
+    setPlayers(merged.players);
     status.textContent = 'Updated ' + merged.matched + ' players from ' + file.name + (merged.viaName ? ' (' + merged.viaName + ' matched by name)' : '') + '.' +
       (merged.unmatched ? ' ' + merged.unmatched + ' rows did not match this slate.' : '') + (parsed.bad ? ' ' + parsed.bad + ' rows had no numeric projection.' : '');
     status.className = 'status';
@@ -1059,22 +1267,8 @@ function setStatus(message, kind) {
   $('buildStatus').textContent = message;
   $('buildStatus').className = 'status' + (kind ? ' ' + kind : '');
 }
-function preflight(rules) {
-  const locks = players.filter(p => p.action === 'lock');
-  const missing = locks.find(p => !(Number(p.projection) > 0));
-  if (missing) return missing.name + ' is locked but has no projection. A player projected at 0 is treated as out, so enter a projection or remove the lock.';
-  const limit = {QB: 1, RB: 3, WR: 4, TE: 2, DST: 1};
-  for (const pos of POSITIONS) {
-    const n = locks.filter(p => p.pos === pos).length;
-    if (n > limit[pos]) return 'You locked ' + n + ' ' + pos + 's. A lineup holds at most ' + limit[pos] + '.';
-  }
-  if (locks.filter(p => ['RB', 'WR', 'TE'].includes(p.pos)).length > 7) return 'You locked more than 7 runners and pass catchers.';
-  if (locks.reduce((sum, p) => sum + p.salary, 0) > 50000) return 'Your locked players cost more than $50,000.';
-  if (players.filter(p => Number(p.projection) > 0 && p.action !== 'out').length < 9) return 'Fewer than 9 players have a projection. Load projections or enter them on the Players tab.';
-  return '';
-}
 function finish(data, rules) {
-  worker = null;
+  running = null;
   $('build').textContent = 'Build lineups';
   $('progress').hidden = true;
   results = data.lineups.map((lineup, index) => ({...lineup, number: index + 1}));
@@ -1089,39 +1283,34 @@ function finish(data, rules) {
   } else {
     setStatus('Built ' + n + ' lineups.' + (data.approximate ? ' ' + data.approximate + ' are the best found before the search limit, not proven best.' : ' Each is the highest-scoring lineup the rules allow after the ones before it.'));
   }
+  if (n) {
+    const saved = addToPool(results.map(r => r.ids), preset.id);
+    $('buildStatus').textContent += ' ' + (saved.added ? saved.added + ' new saved for Lineup Setup.' : 'All were already saved.');
+  }
   renderLineups();
+  renderSaved();
   if (n) showTab('lineups');
 }
 $('rules').onsubmit = event => {
   event.preventDefault();
-  if (worker) { worker.terminate(); worker = null; $('build').textContent = 'Build lineups'; $('progress').hidden = true; setStatus('Build stopped.'); return; }
+  if (running) { running.stop(); return; }
   const rules = getRules();
-  const problem = preflight(rules);
+  const problem = preflight();
   if (problem) { setStatus(problem, 'bad'); return; }
-  const payload = {rules, players: players.map(p => ({id: p.id, pos: p.pos, team: p.team, game: p.game, start: p.start, salary: p.salary, projection: p.projection, ownership: p.ownership, action: p.action, cap: p.cap}))};
   setStatus('Building…');
   $('progress').hidden = false;
   $('progress').firstElementChild.style.width = '0';
-  const onProgress = done => {
+  $('build').textContent = 'Stop';
+  running = runOptimizer(rules, done => {
     $('progress').firstElementChild.style.width = (100 * done / rules.count) + '%';
     setStatus('Built ' + done + ' of ' + rules.count + '…');
-  };
-  try {
-    const url = URL.createObjectURL(new Blob([optimize.toString(), '\nself.onmessage = e => self.postMessage(optimize(e.data.players, e.data.rules, n => self.postMessage(n)));'], {type: 'text/javascript'}));
-    worker = new Worker(url);
-    URL.revokeObjectURL(url);
-    $('build').textContent = 'Stop';
-    worker.onmessage = ({data}) => {
-      if (typeof data === 'number') return onProgress(data);
-      worker.terminate();
-      finish(data, rules);
-    };
-    worker.onerror = () => { worker = null; runInline(); };
-    worker.postMessage(payload);
-  } catch { runInline(); }
-  function runInline() {
-    setTimeout(() => finish(optimize(payload.players, payload.rules, () => {}), rules), 30);
-  }
+  });
+  running.promise.then(data => finish(data, rules), () => {
+    running = null;
+    $('build').textContent = 'Build lineups';
+    $('progress').hidden = true;
+    setStatus('Build stopped.');
+  });
 };
 
 /* --- lineups --- */
@@ -1131,37 +1320,11 @@ function sorted() {
   list.sort((a, b) => key === 'number' ? a.number - b.number : key === 'own' ? a.own - b.own || b.median - a.median : b[key] - a[key] || b.median - a.median);
   return list;
 }
-// Facts about one lineup, recalculated from the current player pool.
-function describe(ids) {
-  const line = ids.map(id => byId.get(id));
-  if (line.some(p => !p)) return null;
-  const qb = line[0];
-  const mates = line.filter((p, i) => i > 0 && p.team === qb.team && (p.pos === 'WR' || p.pos === 'TE'));
-  const backs = line.filter(p => p.game === qb.game && p.team !== qb.team && p.pos !== 'DST');
-  const dst = line[8];
-  const facing = line.filter(p => p.pos !== 'DST' && p.team === dst.opp);
-  const salary = line.reduce((sum, p) => sum + p.salary, 0);
-  const projection = line.reduce((sum, p) => sum + (Number(p.projection) || 0), 0);
-  const own = line.reduce((sum, p) => sum + (p.ownership || 0), 0);
-  const flags = [];
-  if (salary < 48000) flags.push('Under $48,000');
-  else if (50000 - salary > 500) flags.push(money(50000 - salary) + ' unused');
-  if (facing.length) flags.push('DST faces ' + facing.map(p => p.name).join(', '));
-  const shape = qb.team + ' ' + (mates.length ? 'QB + ' + mates.length : 'QB alone') + (backs.length ? ', ' + backs.length + ' bring-back' + (backs.length > 1 ? 's' : '') + ' (' + qb.opp + ')' : ', no bring-back');
-  return {line, qb, mates, backs, salary, projection, own, flags, shape};
-}
-function bars(pairs, n, label) {
-  return pairs.map(([text, count, pos]) => {
-    const pct = Math.round(100 * count / n);
-    return '<div class="expo-row"><span class="pos ' + pos + '">' + (label || pos) + '</span><div class="nm"><i style="width:' + pct + '%"></i><span>' + esc(text) + '</span></div><span class="r num">' + pct + '%</span></div>';
-  }).join('');
-}
 function renderLineups() {
   const n = results.length;
   $('nLineups').textContent = n;
   $('lineupsEmpty').hidden = n > 0;
   $('lineupsBody').hidden = n === 0;
-  renderEntries();
   if (!n) return;
   const facts = new Map(results.map(r => [r.number, describe(r.ids)]));
   const projections = [...facts.values()].map(f => f.projection);
@@ -1170,24 +1333,13 @@ function renderLineups() {
   $('summary').innerHTML = '<span><b>' + n + '</b> lineups</span><span>Projected <b class="num">' + Math.min(...projections).toFixed(1) +
     (n > 1 ? ' to ' + Math.max(...projections).toFixed(1) : '') + '</b></span><span>Average salary <b class="num">' + money(Math.round(avgSalary)) + '</b></span>' +
     '<span><b>' + flagged + '</b> flagged for review</span>';
-  const use = new Map(), qbs = new Map(), games = new Map();
-  for (const f of facts.values()) {
-    for (const p of f.line) use.set(p.id, (use.get(p.id) || 0) + 1);
-    qbs.set(f.qb.id, (qbs.get(f.qb.id) || 0) + 1);
-    const perGame = new Map();
-    for (const p of f.line) perGame.set(p.game, (perGame.get(p.game) || 0) + 1);
-    for (const [game, count] of perGame) if (count >= 3) games.set(game, (games.get(game) || 0) + 1);
-  }
-  const desc = (a, b) => b[1] - a[1];
-  $('expoQb').innerHTML = bars([...qbs].sort(desc).map(([id, count]) => [byId.get(id).name, count, 'QB']), n);
-  $('expoGame').innerHTML = bars([...games].sort(desc).map(([game, count]) => [game, count, 'FLEX']), n, 'GM') || '<span class="small muted">None</span>';
-  $('expo').innerHTML = bars([...use].sort((a, b) => b[1] - a[1] || byId.get(b[0]).salary - byId.get(a[0]).salary).map(([id, count]) => [byId.get(id).name, count, byId.get(id).pos]), n);
+  const expo = exposureHtml(results.map(r => r.ids));
+  $('expoQb').innerHTML = expo.qb;
+  $('expoGame').innerHTML = expo.game;
+  $('expo').innerHTML = expo.player;
   $('cards').innerHTML = sorted().map(r => {
     const f = facts.get(r.number);
-    const rows = f.line.map((p, i) => {
-      const dot = i === 0 || f.mates.includes(p) ? '<i class="dot full" title="QB stack"></i>' : f.backs.includes(p) ? '<i class="dot back" title="Bring-back"></i>' : '';
-      return '<tr><td class="slot">' + SLOTS[i] + '</td><td class="nm">' + dot + esc(p.name) + '</td><td class="muted">' + esc(p.team) + '</td><td class="r">' + money(p.salary) + '</td><td class="r">' + Number(p.projection).toFixed(1) + '</td></tr>';
-    }).join('');
+    const rows = lineupRows(f);
     return '<article class="card"><header><span class="n">#' + r.number + '</span><span class="pts num">' + f.projection.toFixed(1) + '<small>pts</small></span>' +
       '<span class="meta num"><b>' + money(f.salary) + '</b><br>' + money(50000 - f.salary) + ' left · own sum ' + f.own.toFixed(0) + '%</span></header><table><tbody>' + rows + '</tbody></table>' +
       '<div class="shape">' + esc(f.shape) + '</div>' + (f.flags.length ? '<div class="flags">' + f.flags.map(flag => '<span class="flag">' + esc(flag) + '</span>').join('') + '</div>' : '') + '</article>';
@@ -1197,201 +1349,54 @@ $('sort').onchange = renderLineups;
 $('saveLineups').onclick = () => download(lineupsCsv(sorted()), 'draftkings-lineups.csv', 'text/csv');
 $('copyLineups').onclick = () => copy(lineupsCsv(sorted()), 'Lineups');
 
-/* --- entries --- */
-const hasLineup = entry => entry.current.some(Boolean);
-const lineupKey = lineup => lineup.ids.slice().sort().join(',');
-const feeOf = entry => Number(String(entry.fee).replace(/[^0-9.]/g, '')) || 0;
-// Read from the contest name only: these are labels, not verified contest settings.
-function contestKind(name) {
-  if (/double up|50\/50|fifty|head to head|h2h/i.test(name)) return 'Cash';
-  if (/satellite|supersat|qualifier/i.test(name)) return 'Qualifier';
-  return 'Tournament';
+/* --- saved lineups --- */
+function renderSaved() {
+  const list = loadPool();
+  $('nSaved').textContent = list.length;
+  const rows = list.map((item, index) => ({item, index, f: usable(item.ids) ? describe(item.ids) : null}))
+    .sort((a, b) => (b.f ? b.f.projection : -1) - (a.f ? a.f.projection : -1));
+  const stale = rows.filter(row => !row.f).length;
+  $('savedLine').textContent = list.length ? list.length + ' saved' + (stale ? ' · ' + stale + ' no longer usable (a player is out, unprojected or missing)' : '') : '';
+  $('clearSaved').disabled = !list.length;
+  $('savedRows').innerHTML = rows.map(({item, index, f}) => f ?
+    '<tr><td class="r"><b>' + f.projection.toFixed(1) + '</b></td><td class="sum">' + f.line.map(p => esc(p.name)).join(', ') + '</td><td>' + esc(f.shape) + '</td><td class="r">' + money(f.salary) + '</td><td><span class="kind">' + (item.kind === 'cash' ? 'Cash' : 'Tournament') + '</span></td><td><button class="linebtn" type="button" data-remove="' + index + '">Remove</button></td></tr>' :
+    '<tr><td class="r muted">n/a</td><td class="sum muted" colspan="4">No longer usable with the current player pool.</td><td><button class="linebtn" type="button" data-remove="' + index + '">Remove</button></td></tr>'
+  ).join('') || '<tr><td colspan="6" class="empty">Nothing saved yet. Build lineups and they will collect here.</td></tr>';
 }
-function contestLimit(name) {
-  const max = /\[(\d+) Entry Max\]/i.exec(name);
-  if (max) return Number(max[1]);
-  return /single entry/i.test(name) ? 1 : null;
-}
-function labelFor(lineup) {
-  const f = describe(lineup.ids);
-  return f.projection.toFixed(1) + ' pts · ' + f.qb.name;
-}
-function shownEntries() {
-  const pick = $('contest').value;
-  return entries.filter(entry => !pick || (pick.startsWith('kind:') ? contestKind(entry.contest) === pick.slice(5) : entry.contestId === pick));
-}
-function validateExport() {
-  const checks = [];
-  const add = (level, text) => checks.push({level, text});
-  const rows = entries.filter(entry => assignments.has(entry.id));
-  if (!rows.length) return {verdict: 'idle', checks};
-  const limit = {QB: [1, 1], RB: [2, 3], WR: [3, 4], TE: [1, 2], DST: [1, 1]};
-  let structural = 0, inactive = 0, flexLate = 0, review = 0;
-  const perContest = new Map();
-  let repeats = 0;
-  for (const entry of rows) {
-    const ids = assignments.get(entry.id).ids;
-    const line = ids.map(id => byId.get(id));
-    const key = lineupKey({ids});
-    if (!perContest.has(entry.contestId)) perContest.set(entry.contestId, new Set());
-    if (perContest.get(entry.contestId).has(key)) repeats++;
-    perContest.get(entry.contestId).add(key);
-    if (ids.length !== 9 || line.some(p => !p) || new Set(ids).size !== 9) { structural++; continue; }
-    const slotsOk = line.every((p, i) => SLOTS[i] === 'FLEX' ? ['RB', 'WR', 'TE'].includes(p.pos) : p.pos === SLOTS[i]);
-    const counts = Object.fromEntries(POSITIONS.map(pos => [pos, line.filter(p => p.pos === pos).length]));
-    const salary = line.reduce((sum, p) => sum + p.salary, 0);
-    if (!slotsOk || POSITIONS.some(pos => counts[pos] < limit[pos][0] || counts[pos] > limit[pos][1]) || salary > 50000 || new Set(line.map(p => p.game)).size < 2) structural++;
-    if (line.some(p => p.action === 'out' || !(Number(p.projection) > 0))) inactive++;
-    const flex = line[7];
-    if (line.slice(1, 7).some(p => p.pos === flex.pos && p.start > flex.start)) flexLate++;
-    if (salary < 48000 || 50000 - salary > 500) review++;
-  }
-  add(structural ? 'fail' : 'pass', structural ? structural + ' assigned lineups break a DraftKings roster, salary cap or two-game rule, or use a player missing from this file.' : 'Every assigned lineup has 9 valid players in legal slots, at or under $50,000, from at least two games.');
-  add(inactive ? 'fail' : 'pass', inactive ? inactive + ' assigned lineups use a player you have since marked Out or left without a projection. Rebuild or reassign them.' : 'No assigned lineup uses a player marked Out or without a projection. Injury status itself is not checked here.');
-  const csv = entriesCsv(entries, assignments);
-  const back = parseCsv(csv);
-  const expected = [...ENTRY_HEAD, ...SLOTS];
-  const known = new Set(entries.map(entry => entry.id));
-  const seen = new Set();
-  let readOk = back.length === rows.length + 1 && expected.every((cell, i) => back[0][i] === cell);
-  back.slice(1).forEach((row, i) => {
-    const entry = rows[i];
-    if (!entry || row[0] !== entry.id || row[2] !== entry.contestId || seen.has(row[0]) || !known.has(row[0]) ||
-        assignments.get(entry.id).ids.some((id, j) => row[4 + j] !== id)) readOk = false;
-    seen.add(row[0]);
-  });
-  add(readOk ? 'pass' : 'fail', readOk ? 'Export read back: ' + rows.length + ' rows, each original entry ID and contest ID once, player IDs in DraftKings slot order.' : 'The export did not read back correctly. Do not upload it.');
-  add(flexLate ? 'warn' : 'pass', flexLate ? flexLate + ' lineups could hold a later kickoff in FLEX.' : 'FLEX holds the latest kickoff the roster allows in every lineup.');
-  if (repeats) add('warn', repeats + ' entries repeat a lineup already used in the same contest.');
-  else add('pass', 'No lineup is repeated inside a contest.');
-  if (review) add('warn', review + (review === 1 ? ' lineup is' : ' lineups are') + ' under $48,000 or over $500 unused. That is legal; check that it is on purpose.');
-  const contests = new Map();
-  for (const entry of entries) contests.set(entry.contestId, {name: entry.contest, n: (contests.get(entry.contestId)?.n || 0) + 1});
-  const over = [...contests.values()].filter(c => contestLimit(c.name) != null && c.n > contestLimit(c.name)).length;
-  const unknown = [...contests.values()].filter(c => contestLimit(c.name) == null).length;
-  if (over) add('fail', over + ' contests hold more of your entries than the limit in their name.');
-  else if (unknown) add('warn', 'Entry limits: ' + (contests.size - unknown) + ' contests are within the limit in their name. ' + unknown + ' do not state a limit, so those are not verified.');
-  else add('pass', 'Every contest is within the entry limit stated in its name.');
-  const verdict = checks.some(c => c.level === 'fail') ? 'bad' : checks.some(c => c.level === 'warn') ? 'warn' : 'go';
-  return {verdict, checks, csv};
-}
-function renderEntries() {
-  $('nEntries').textContent = entries ? entries.length : 0;
-  $('entriesEmpty').hidden = !!entries;
-  $('entriesBody').hidden = !entries;
-  if (!entries) return;
-  const contests = new Map();
-  for (const entry of entries) {
-    const c = contests.get(entry.contestId) || {name: entry.contest, n: 0, fees: 0};
-    c.n++; c.fees += feeOf(entry);
-    contests.set(entry.contestId, c);
-  }
-  const kinds = [...new Set([...contests.values()].map(c => contestKind(c.name)))];
-  const keep = $('contest').value;
-  $('contest').innerHTML = '<option value="">All ' + contests.size + ' contests</option>' +
-    kinds.map(kind => '<option value="kind:' + kind + '">All ' + kind.toLowerCase() + ' contests</option>').join('') +
-    [...contests].map(([id, c]) => '<option value="' + esc(id) + '">' + esc(c.name) + '</option>').join('');
-  $('contest').value = [...$('contest').options].some(option => option.value === keep) ? keep : '';
-  $('contestRows').innerHTML = [...contests.values()].sort((a, b) => b.fees - a.fees).map(c => {
-    const max = contestLimit(c.name);
-    return '<tr><td>' + esc(c.name) + '</td><td><span class="kind">' + contestKind(c.name) + '</span></td><td class="r">' + c.n + '</td><td class="r">' + (max ?? '') + '</td><td class="r">$' + c.fees.toFixed(2) + '</td></tr>';
-  }).join('');
-  const list = sorted();
-  const options = list.map((lineup, i) => '<option value="' + i + '">#' + lineup.number + ' · ' + esc(labelFor(lineup)) + '</option>').join('');
-  $('entryRows').innerHTML = shownEntries().map(entry => {
-    const mine = assignments.get(entry.id);
-    const current = hasLineup(entry) ? entry.current.map(cell => cell.replace(/\s*\(\d+\)$/, '')).filter(Boolean).join(', ') : '';
-    return '<tr data-id="' + entry.id + '" class="' + (mine ? 'assigned' : '') + '"><td>' + esc(entry.contest) + '</td><td><span class="kind">' + contestKind(entry.contest) + '</span></td><td class="r">' + esc(entry.fee) + '</td><td class="muted">' + entry.id + '</td>' +
-      '<td><div class="cur" title="' + esc(current) + '">' + (current ? esc(current) : 'Empty') + '</div></td>' +
-      '<td><select aria-label="Lineup for entry ' + entry.id + '"><option value="">' + (current ? 'Keep current lineup' : 'Leave empty') + '</option>' +
-      (mine ? '<option value="mine" selected>Assigned · ' + esc(mine.label) + '</option>' : '') + options + '</select></td></tr>';
-  }).join('');
-  const filled = entries.filter(hasLineup).length;
-  const fees = entries.reduce((sum, entry) => sum + feeOf(entry), 0);
-  $('entrySummary').innerHTML = '<span><b>' + entries.length + '</b> entries</span><span><b>' + contests.size + '</b> contests</span><span>Total fees <b class="num">$' + fees.toFixed(2) +
-    '</b></span><span><b>' + filled + '</b> already filled</span><span><b>' + assignments.size + '</b> assigned here</span>';
-  const check = validateExport();
-  renderEntries.csv = check.csv;
-  const label = {idle: 'NOT CHECKED', go: 'GO', warn: 'GO WITH WARNINGS', bad: 'NO-GO'}[check.verdict];
-  $('verdict').textContent = label;
-  $('verdict').className = 'pill ' + (check.verdict === 'go' ? '' : check.verdict);
-  $('verdictLine').textContent = check.verdict === 'idle' ? 'Assign lineups to run the export checks.' :
-    check.verdict === 'bad' ? 'The export is blocked until the failed checks are fixed.' :
-    check.checks.filter(c => c.level === 'pass').length + ' checks passed, ' + check.checks.filter(c => c.level === 'warn').length + ' warnings.';
-  $('checks').innerHTML = check.checks.map(c => '<li class="' + c.level + '"><b>' + c.level.toUpperCase() + '</b><span>' + esc(c.text) + '</span></li>').join('');
-  if (check.verdict === 'bad' || check.verdict === 'warn') $('verdictBox').open = true;
-  $('saveEntries').disabled = $('copyEntries').disabled = check.verdict === 'idle' || check.verdict === 'bad';
-  $('fillEmpty').disabled = $('fillAll').disabled = !list.length;
-  if (!list.length && !assignments.size) $('entryStatus').textContent = 'Build lineups to assign them to these entries.';
-  else if ($('entryStatus').textContent.startsWith('Build lineups')) $('entryStatus').textContent = '';
-}
-function assign(entry, lineup) { assignments.set(entry.id, {ids: lineup.ids, label: '#' + lineup.number + ' · ' + labelFor(lineup)}); }
-function fill(all) {
-  const list = sorted();
-  let count = 0;
-  const usedBy = new Map();
-  for (const entry of entries) {
-    const mine = assignments.get(entry.id);
-    if (!mine) continue;
-    if (!usedBy.has(entry.contestId)) usedBy.set(entry.contestId, new Set());
-    usedBy.get(entry.contestId).add(lineupKey(mine));
-  }
-  for (const entry of shownEntries()) {
-    if (assignments.has(entry.id) || (!all && hasLineup(entry))) continue;
-    if (!usedBy.has(entry.contestId)) usedBy.set(entry.contestId, new Set());
-    const used = usedBy.get(entry.contestId);
-    const next = list.find(lineup => !used.has(lineupKey(lineup)));
-    if (!next) continue;
-    used.add(lineupKey(next));
-    assign(entry, next);
-    count++;
-  }
-  $('entryStatus').textContent = count ? 'Assigned ' + count + ' entries in the sort order on the Optimizer tab, with no repeats inside a contest. The same lineup can be reused across different contests.' :
-    'Nothing to assign. Every shown entry is set, or there are no unused lineups left for its contest.';
-  renderEntries();
-}
-$('fillEmpty').onclick = () => fill(false);
-$('fillAll').onclick = () => fill(true);
-$('clearAssign').onclick = () => { assignments.clear(); $('entryStatus').textContent = 'Assignments cleared.'; renderEntries(); };
-$('contest').onchange = renderEntries;
-$('entryRows').addEventListener('change', event => {
-  const select = event.target.closest('select');
-  if (!select || select.value === 'mine') return;
-  const entry = entries.find(item => item.id === select.closest('tr').dataset.id);
-  if (select.value === '') assignments.delete(entry.id);
-  else assign(entry, sorted()[Number(select.value)]);
-  $('entryStatus').textContent = '';
-  renderEntries();
+$('savedRows').addEventListener('click', event => {
+  const button = event.target.closest('[data-remove]');
+  if (!button) return;
+  const list = loadPool();
+  list.splice(Number(button.dataset.remove), 1);
+  savePool(list);
+  renderSaved();
 });
-$('saveEntries').onclick = () => { const check = validateExport(); if (check.csv && check.verdict !== 'bad') download(check.csv, 'DKEntries-updated.csv', 'text/csv'); };
-$('copyEntries').onclick = () => { const check = validateExport(); if (check.csv && check.verdict !== 'bad') copy(check.csv, 'Entries'); };
+$('clearSaved').onclick = () => { savePool([]); renderSaved(); toast('Saved lineups cleared.'); };
 
-/* --- publishing (owner copy only) --- */
-if (slate.owner) {
+/* --- publishing a new slate (owner) --- */
+function showOwner() {
+  if (location.hash !== '#publish') return;
+  $('owner').hidden = false;
   $('slateName').value = slate.name;
-  $('publish').onclick = () => {
-    const name = $('slateName').value.trim();
-    if (!name) { $('ownerStatus').textContent = 'Enter a slate name first.'; return; }
-    const page = new DOMParser().parseFromString(initialMarkup, 'text/html');
-    page.getElementById('owner').remove();
-    page.documentElement.removeAttribute('data-theme');
-    const data = {name, owner: false, players: players.map(p => PLAYER_KEYS.map(key => p[key]))};
-    page.getElementById('slateData').textContent = JSON.stringify(data).replaceAll('<', '\\u003c');
-    download('<!DOCTYPE html>\n' + page.documentElement.outerHTML, 'optimizer-lineup-setup.html', 'text/html');
-    $('ownerStatus').textContent = 'Downloaded optimizer-lineup-setup.html with ' + players.filter(p => p.projection !== '').length + ' projected players. Your current projections are its starting point.';
-  };
-} else {
-  $('owner')?.remove();
 }
+window.addEventListener('hashchange', showOwner);
+$('publish').onclick = () => {
+  const name = $('slateName').value.trim();
+  if (!name) { $('ownerStatus').textContent = 'Enter a slate name first.'; return; }
+  const data = {name, players: players.map(p => PLAYER_KEYS.map(key => key === 'home' ? (p.home ? 1 : 0) : p[key]))};
+  download(JSON.stringify(data), 'slate.json', 'application/json');
+  $('ownerStatus').textContent = 'Downloaded slate.json with ' + players.filter(p => p.projection !== '').length + ' projected players. Your current projections are its starting point.';
+};
 
 function renderAll() {
   renderSlate();
   renderPool();
   renderLineups();
+  renderSaved();
 }
-loadEdits();
 applyPreset(PRESETS[1]);
 renderAll();
+showOwner();
 </script>
 </body>
 </html>
