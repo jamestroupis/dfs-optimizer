@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DraftKings Lineup Setup | Fill Your NFL DFS Entries</title>
-<meta name="description" content="Upload your DraftKings NFL entries CSV and get every contest filled: one best cash lineup across your cash games, your tournament lineups spread across the rest, checked and ready to upload.">
+<title>DraftKings Lineup Setup | AI Review Pack for NFL DFS</title>
+<meta name="description" content="Upload your DraftKings NFL entries CSV and get a ready-made pack for an AI to review: contests, entries, candidate lineups and player pool. Paste the AI's answer back to check it and export your upload file.">
 <meta property="og:title" content="DraftKings Lineup Setup for NFL DFS">
-<meta property="og:description" content="Upload your DraftKings entries file. Get a suggested approach per contest and a filled, checked upload file. Runs in your browser.">
+<meta property="og:description" content="Turn your DraftKings entries into a pack an AI can review against your playbook, then check and export its answer. Runs in your browser.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://optimizer.jamestroupis.com/lineup-setup/">
 <link rel="canonical" href="https://optimizer.jamestroupis.com/lineup-setup/">
@@ -249,7 +249,7 @@ td.sum{white-space:normal;min-width:260px}
   <div>
     <div class="brand">NFL · DraftKings Classic</div>
     <h1>Lineup Setup</h1>
-    <p class="slate">Upload your DraftKings entries. Get a suggested approach for each contest and your whole slate filled in.</p>
+    <p class="slate">Upload your DraftKings entries. Get the documents to take to an AI, then bring its answer back to be checked and exported.</p>
     <p class="slate" id="slateLine"></p>
     <nav class="nav" aria-label="Tools"><a href="../">Optimizer</a><a href="./" aria-current="page">Lineup Setup</a></nav>
   </div>
@@ -269,9 +269,9 @@ td.sum{white-space:normal;min-width:260px}
   </section>
 
   <section class="panel step" id="planStep" hidden>
-    <h2><span>2</span>Suggested approach</h2>
+    <h2><span>2</span>Draft slate</h2>
     <div class="summary" id="entrySummary"></div>
-    <p class="small muted" style="max-width:85ch">Each contest is sorted by its name, entry fee and prize pool. Field size is a rough floor (prize pool divided by entry fee), not a count from DraftKings. Change any contest's approach if the suggestion is wrong.</p>
+    <p class="small muted" style="max-width:85ch">A draft gives the AI something concrete to review, which works better than asking it to start from nothing. Each contest is sorted by its name, entry fee and prize pool. Field size is a rough floor (prize pool divided by entry fee), not a count from DraftKings. Change any contest's approach if the suggestion is wrong.</p>
     <div class="plan" id="approaches"></div>
     <details class="verdict" open><summary>Your contests</summary><div class="scroll" style="margin:0 12px 12px;max-height:340px"><table>
       <thead><tr><th scope="col">Contest</th><th scope="col" class="r">Fee</th><th scope="col" class="r">Entries</th><th scope="col" class="r">Limit</th><th scope="col" class="r">Field, at least</th><th scope="col">Approach</th></tr></thead>
@@ -282,14 +282,34 @@ td.sum{white-space:normal;min-width:260px}
       <label class="check"><input id="spread" type="checkbox" checked> <span>Spread different lineups across tournaments before reusing any</span></label>
     </div>
     <div style="display:grid;gap:8px;margin-top:14px;max-width:420px">
-      <button class="btn primary go" id="build" type="button">Build my slate</button>
+      <button class="btn primary go" id="build" type="button">Build a draft slate</button>
       <div class="progress" id="progress" hidden><i></i></div>
       <p class="status" id="buildStatus" role="status"></p>
     </div>
   </section>
 
+  <section class="panel step" id="packStep" hidden>
+    <h2><span>3</span>AI review pack</h2>
+    <p class="muted" style="max-width:80ch">One document with everything an AI needs: instructions, your contests and entries, candidate lineups, exposure and the player pool. Upload it to an AI chat together with your playbook, if you have one.</p>
+    <div class="bar" style="margin-top:12px">
+      <button class="btn primary" id="savePack" type="button">Download AI pack</button>
+      <button class="btn" id="copyPack" type="button">Copy pack</button>
+      <span class="small muted" id="packLine"></span>
+    </div>
+    <ol class="small muted" style="margin:12px 0 0;padding-left:20px;display:grid;gap:3px;max-width:80ch">
+      <li>Start a chat with an AI and attach the pack. Attach your playbook too and tell the AI it governs.</li>
+      <li>The pack asks the AI to return a table: one row per entry, with the lineup it chose.</li>
+      <li>Paste that table below. Every lineup is checked before you can export.</li>
+    </ol>
+    <h3 style="font:700 16px/1.2 var(--display);letter-spacing:.03em;text-transform:uppercase;margin-top:16px">Bring the AI's answer back</h3>
+    <textarea id="answer" rows="6" spellcheck="false" aria-label="The AI's answer" placeholder="Paste the AI's table here. Each row: Entry ID, then either a lineup label like L12 or nine players (IDs, or names with IDs)." style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--surface);color:var(--ink);font:13px/1.4 ui-monospace,Menlo,Consolas,monospace"></textarea>
+    <div class="bar" style="margin-top:8px"><button class="btn primary" id="applyAnswer" type="button">Check and apply</button>
+      <label class="btn" for="answerFile">Load from a file</label><input class="vh" id="answerFile" type="file" accept=".csv,.txt,.md,text/plain,text/csv"></div>
+    <p class="status" id="answerStatus" role="status" style="margin-top:8px"></p>
+  </section>
+
   <section class="panel step" id="slateStep" hidden>
-    <h2><span>3</span>Your slate</h2>
+    <h2><span>4</span>Final slate</h2>
     <p class="level"><b>Model level D: point projections only.</b> Lineups add up player numbers; they are not odds. Each player's floor and ceiling start at 50% below and 50% above the projection unless a value was entered or uploaded, and a lineup's floor and ceiling are simply the nine added together.</p>
     <div class="summary" id="slateSummary"></div>
     <div id="cashBox"></div>
@@ -313,9 +333,9 @@ td.sum{white-space:normal;min-width:260px}
 <section class="about">
   <h2>How Lineup Setup works</h2>
   <div class="about-grid">
-    <div><h3>It reads your contests</h3><p>From your DraftKings entries file it sorts each contest into cash, small, medium or massive tournament, using the contest name, entry fee and prize pool, and suggests an approach for each.</p></div>
-    <div><h3>It uses your lineups first</h3><p>Lineups you built in the <a href="../">Optimizer</a> on this device are used first. If you have none, or not enough for a big contest, it builds the rest with the same optimizer.</p></div>
-    <div><h3>It fills and checks the slate</h3><p>One best cash lineup goes in every cash entry. Tournament lineups are spread across the rest with no repeats inside a contest. Every export is checked and read back before download.</p></div>
+    <div><h3>It prepares the facts</h3><p>From your DraftKings entries file it lists every contest and entry, sorts contests by type and size, gathers your best saved lineups from the <a href="../">Optimizer</a>, and can build a draft slate.</p></div>
+    <div><h3>An AI makes the judgment calls</h3><p>The best lineup is not only about projected points. The pack gives an AI everything it needs to weigh stacks, stories, ownership and portfolio balance against your playbook.</p></div>
+    <div><h3>It checks the answer</h3><p>Paste the AI's choices back. Every lineup is checked against DraftKings roster and salary rules and your entry IDs, read back, and exported as an upload file.</p></div>
   </div>
 </section>
 <div class="toast" id="toast" role="status"></div>
@@ -1068,7 +1088,7 @@ const APPROACH = {
 };
 const ORDER = ['cash', 'small', 'medium', 'massive'];
 const settings = Object.fromEntries(ORDER.map(key => [key, {stack: APPROACH[key].stack, bring: APPROACH[key].bring, lean: 0}]));
-let entries = null, contests = [], running = null, built = null;
+let entries = null, contests = [], running = null, built = null, labels = new Map();
 const assignments = new Map();
 
 function fieldFloor(name, fee) {
@@ -1099,7 +1119,9 @@ function renderCarry() {
 function reset() {
   assignments.clear();
   built = null;
+  labels = new Map();
   $('slateStep').hidden = true;
+  if (entries) renderPackLine();
 }
 $('dkFile').onchange = async event => {
   const file = event.target.files[0];
@@ -1126,6 +1148,8 @@ $('dkFile').onchange = async event => {
     status.textContent = message;
     status.className = 'status' + (warn ? ' warn' : '');
     $('planStep').hidden = false;
+    $('packStep').hidden = false;
+    renderPackLine();
     renderCarry();
     renderPlan();
   } catch (error) { status.textContent = error.message; status.className = 'status bad'; }
@@ -1200,7 +1224,7 @@ function setStatus(message, kind) {
 }
 function idle() {
   running = null;
-  $('build').textContent = 'Build my slate';
+  $('build').textContent = 'Build a draft slate';
   $('progress').hidden = true;
 }
 $('build').onclick = async () => {
@@ -1279,37 +1303,42 @@ function distribute(saved, extra, need) {
   if (short) notes.push(short + ' entries were left empty because there were not enough different lineups for their contest. Turn on "Build extra lineups" or save more in the Optimizer.');
   built = {cash, ranked, savedKeys, notes, best: extra.cash && extra.cash[0]};
   renderSlate();
+  renderPackLine();
   $('slateStep').hidden = false;
-  setStatus('Filled ' + assignments.size + ' of ' + entries.length + ' entries.' + (short ? ' ' + short + ' left empty.' : ''), short ? 'warn' : '');
-  $('slateStep').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block: 'start'});
+  setStatus('Draft filled ' + assignments.size + ' of ' + entries.length + ' entries. Download the AI pack in step 3, or export the draft as it is in step 4.' + (short ? ' ' + short + ' left empty.' : ''), short ? 'warn' : '');
+  $('packStep').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block: 'start'});
 }
 
 /* --- step 3: slate --- */
 function renderSlate() {
+  if (!built) built = {cash: null, ranked: {}, savedKeys: new Set(loadPool().map(item => lineupKey(item.ids))), notes: [], best: null};
   const kept = entries.filter(entry => !assignments.has(entry.id) && hasLineup(entry)).length;
   const empty = entries.length - assignments.size - kept;
   const tour = contests.filter(c => c.approach !== 'cash').flatMap(c => c.entries).filter(entry => assignments.has(entry.id));
   const distinct = new Set(tour.map(entry => lineupKey(assignments.get(entry.id).ids))).size;
   const fromSaved = [...assignments.values()].filter(a => a.source === 'Saved').length;
   $('slateSummary').innerHTML = '<span><b>' + assignments.size + '</b> entries filled</span><span><b>' + distinct + '</b> different tournament lineups</span><span><b>' + fromSaved +
-    '</b> from your saved lineups</span><span><b>' + kept + '</b> left as they were</span>' + (empty ? '<span class="status warn"><b>' + empty + '</b> still empty</span>' : '');
+    '</b> from your saved lineups</span><span><b>' + [...assignments.values()].filter(a => a.source === 'AI').length + '</b> set by the AI</span><span><b>' + kept + '</b> left as they were</span>' + (empty ? '<span class="status warn"><b>' + empty + '</b> still empty</span>' : '');
 
-  if (built.cash) {
-    const f = describe(built.cash);
-    const n = contests.filter(c => c.approach === 'cash').flatMap(toFill).length;
-    const fromSavedCash = built.savedKeys.has(lineupKey(built.cash));
-    const best = built.best ? describe(built.best) : null;
-    const gap = best && fromSavedCash ? best.projection - f.projection : 0;
+  const cashAssigned = contests.filter(c => c.approach === 'cash').flatMap(c => c.entries).filter(entry => assignments.has(entry.id));
+  const cashSets = new Map(cashAssigned.map(entry => [lineupKey(assignments.get(entry.id).ids), assignments.get(entry.id).ids]));
+  const cashNote = [];
+  if (cashSets.size === 1) {
+    const ids = [...cashSets.values()][0];
+    const f = describe(ids);
+    const n = cashAssigned.length;
     $('cashBox').innerHTML = '<article class="card" style="max-width:520px;border-color:var(--accent);border-width:2px;margin-bottom:12px"><header><span class="n">CASH</span><span class="pts num">' + f.projection.toFixed(1) +
       '<small>floor ' + f.floor.toFixed(1) + ' · ceiling ' + f.ceiling.toFixed(1) + '</small></span><span class="meta num"><b>' + money(f.salary) + '</b><br>' + money(50000 - f.salary) + ' left · own sum ' + f.own.toFixed(0) + '%</span></header><table><tbody>' + lineupRows(f) + '</tbody></table>' +
-      '<div class="shape"><b>Your cash lineup, in all ' + n + ' cash entr' + (n === 1 ? 'y' : 'ies') + '.</b> ' + (fromSavedCash ? 'It is the highest-projected of your saved lineups' + (gap > 0.005 ? '.' : ', and nothing projects higher under your current locks and projections.') :
-        'Built here: the highest total projection possible under your current locks and projections.') + '</div>' +
+      '<div class="shape"><b>Your cash lineup, in all ' + n + ' assigned cash entr' + (n === 1 ? 'y' : 'ies') + '.</b></div>' +
       (f.flags.length ? '<div class="flags">' + f.flags.map(flag => '<span class="flag">' + esc(flag) + '</span>').join('') + '</div>' : '') + '</article>';
-  } else $('cashBox').innerHTML = '';
+  } else {
+    $('cashBox').innerHTML = '';
+    if (cashSets.size > 1) cashNote.push('Your cash entries use ' + cashSets.size + ' different lineups. The usual approach is one best cash lineup in all of them.');
+  }
 
   const check = validateExport(entries, assignments);
-  if (built.notes.length && check.verdict !== 'idle') {
-    for (const note of built.notes) check.checks.push({level: 'warn', text: note});
+  if ((built.notes.length || cashNote.length) && check.verdict !== 'idle') {
+    for (const note of [...built.notes, ...cashNote]) check.checks.push({level: 'warn', text: note});
     if (check.verdict === 'go') check.verdict = 'warn';
   }
   showVerdict(check);
@@ -1329,7 +1358,7 @@ function renderSlate() {
       }
       const f = describe(mine.ids);
       return '<tr data-id="' + entry.id + '" class="assigned"><td class="muted">' + entry.id + '</td><td class="r"><b>' + f.projection.toFixed(1) + '</b></td><td class="sum">' + esc(f.qb.name) + ' · ' + esc(f.shape) + ' · ' + money(f.salary) +
-        f.flags.map(flag => ' <span class="flag">' + esc(flag) + '</span>').join('') + '</td><td><span class="kind">' + mine.source + '</span></td><td><button class="linebtn" type="button" data-act="view">View</button> · <button class="linebtn" type="button" data-act="change">Change</button></td></tr>';
+        f.flags.map(flag => ' <span class="flag">' + esc(flag) + '</span>').join('') + '</td><td><span class="kind">' + esc(mine.source) + '</span></td><td><button class="linebtn" type="button" data-act="view">View</button> · <button class="linebtn" type="button" data-act="change">Change</button></td></tr>';
     }).join('');
   }).join('');
 }
@@ -1359,6 +1388,144 @@ $('entryRows').addEventListener('click', event => {
 });
 $('saveEntries').onclick = () => { const check = validateExport(entries, assignments); if (check.csv && check.verdict !== 'bad') download(check.csv, 'DKEntries-updated.csv', 'text/csv'); };
 $('copyEntries').onclick = () => { const check = validateExport(entries, assignments); if (check.csv && check.verdict !== 'bad') copy(check.csv, 'Entries'); };
+
+/* --- step 3: the AI pack --- */
+// Candidate lineups for the pack: everything in the draft plus the saved best, highest projection first.
+function candidates() {
+  const map = new Map();
+  const add = (ids, source) => { const key = lineupKey(ids); if (usable(ids) && !map.has(key)) map.set(key, {ids, source}); };
+  for (const mine of assignments.values()) add(mine.ids, mine.source === 'Saved' ? 'saved' : mine.source === 'AI' ? 'ai' : 'draft');
+  for (const item of loadPool()) add(item.ids, item.kind === 'cash' ? 'saved-cash' : 'saved-tournament');
+  const list = [...map.values()].map(c => ({...c, f: describe(c.ids)})).sort((a, b) => b.f.projection - a.f.projection).slice(0, 400);
+  labels = new Map(list.map((c, i) => ['L' + (i + 1), c.ids]));
+  list.forEach((c, i) => { c.label = 'L' + (i + 1); });
+  return list;
+}
+function renderPackLine() {
+  const n = candidates().length;
+  $('packLine').textContent = n + ' candidate lineup' + (n === 1 ? '' : 's') + (assignments.size ? ', including a draft for ' + assignments.size + ' entries.' : '. No draft yet: build one in step 2, or save lineups in the Optimizer, for a stronger pack.');
+}
+function buildPack() {
+  const list = candidates();
+  const labelOf = new Map(list.map(c => [lineupKey(c.ids), c.label]));
+  const base = new Map(baseline.map(p => [p.id, p]));
+  const stamp = slate.updated ? new Date(slate.updated).toISOString().slice(0, 16).replace('T', ' ') + ' UTC by ' + (slate.by || 'jamestroupis') : 'unknown';
+  const fees = entries.reduce((sum, entry) => sum + feeOf(entry), 0);
+  const out = [];
+  const csv = rows => '```csv\n' + rows.map(csvLine).join('\n') + '\n```';
+  out.push('# NFL DFS review pack: ' + slate.name, '', 'Generated ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC at optimizer.jamestroupis.com. DraftKings NFL Classic.', '');
+  out.push('## Instructions for the AI', '',
+    'You are reviewing and finalizing a DraftKings NFL Classic slate for the person who uploaded this pack.',
+    '',
+    '1. If a playbook or rules document is attached alongside this pack, it governs. Follow it over anything here except the hard rules below.',
+    '2. Review the draft assignments (if any) and the candidate lineups against the contest each entry is in. Decide which lineup each entry should use. You may reuse a candidate, or construct a new lineup from the player pool when it better serves that contest.',
+    '3. Judge what the numbers cannot: whether each tournament lineup has a credible way to win, whether the portfolio is truly diverse or the same bet repeated, whether stacks are correlated in a way that helps, and whether anything relies on a player with availability or role risk. Check current news yourself if you can; this pack does not contain injury status.',
+    '4. Keep one best cash lineup across all cash entries unless you have a stated reason not to.',
+    '5. Report what you changed and why, what you could not verify, and a verdict of GO, GO WITH WARNINGS or NO-GO.',
+    '',
+    '**Hard rules (a lineup breaking any of these is invalid):**',
+    '- Roster: 1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX (RB, WR or TE), 1 DST. Nine different players from at least two games.',
+    '- Total salary at or under $50,000.',
+    '- Use only players listed in the player pool, by their DraftKings ID. Never use a player marked OUT.',
+    '- Use each Entry ID exactly as written, at most once. Do not invent entries.',
+    '- Entries marked KEEP already have a lineup the owner wants left alone. Do not include them in your answer unless the owner asks.',
+    '',
+    '**How to answer.** Return one CSV code block with this header, then your report. One row per entry you are setting. For each entry give EITHER a candidate label in the Lineup column, OR nine DraftKings player IDs. The site that made this pack will re-check every row.',
+    '',
+    '```csv', 'Entry ID,Lineup,QB,RB,RB,WR,WR,WR,TE,FLEX,DST', '5345762958,L12,,,,,,,,,', '5345762959,,44943629,44943700,44943716,44943930,44943942,44943962,44944344,44944386,44944545', '```', '');
+  out.push('## What these numbers are', '',
+    '- **Model level D: point projections only.** No calibrated distributions, correlations or field model are included. Do not present cash odds, win odds or simulated percentiles as if they were measured.',
+    '- Salaries, player IDs, teams, opponents and kickoff times: from the owner\'s DraftKings file.',
+    '- Projections and ownership: site defaults last updated ' + stamp + ', plus any edits the owner made (marked EDITED).',
+    '- Floor and ceiling: default to 50% below and 50% above the projection (marked DEFAULT). These are placeholders, not estimates. Values marked SET were entered by the owner or the site.',
+    '- Lineup floor and ceiling are the nine player values added together. They are not percentiles.',
+    '- Contest type and field size are read from the contest name. "Field at least" is prize pool divided by entry fee, a rough floor. Blank means unknown.',
+    '- Total entry fees: $' + fees.toFixed(2) + ' across ' + entries.length + ' entries. No bankroll was provided.', '');
+  out.push('## Contests', '', csv([['Contest ID', 'Contest', 'Type from name', 'Suggested approach', 'Entry fee', 'Your entries', 'Entry limit', 'Field at least'],
+    ...contests.map(c => [c.id, c.name, contestKind(c.name), APPROACH[c.approach].name, '$' + c.fee.toFixed(2), c.entries.length, contestLimit(c.name) ?? '', c.field ?? ''])]), '');
+  out.push('## Entries', '', 'Status EMPTY needs a lineup. KEEP has a lineup already on DraftKings that the owner chose to leave alone. Draft is the lineup this site proposed, if any.', '',
+    csv([['Entry ID', 'Contest ID', 'Contest', 'Status', 'Draft', 'Current lineup on DraftKings'],
+    ...entries.map(entry => {
+      const mine = assignments.get(entry.id);
+      const keep = !mine && hasLineup(entry);
+      return [entry.id, entry.contestId, entry.contest, keep ? 'KEEP' : 'EMPTY', mine ? labelOf.get(lineupKey(mine.ids)) || '' : '', hasLineup(entry) ? entry.current.filter(Boolean).join(' | ') : ''];
+    })]), '');
+  out.push('## Candidate lineups', '', list.length ? 'Highest projection first. Source: draft = built by this site for the draft; saved-cash and saved-tournament = the owner\'s best lineups from the Optimizer. Shape shows the quarterback stack and bring-backs.' : 'None. Build lineups from the player pool.', '');
+  if (list.length) out.push(csv([['Label', 'Source', 'Proj', 'Floor', 'Ceiling', 'Salary', 'Own sum %', 'Shape', 'Flags', ...SLOTS, 'IDs in slot order'],
+    ...list.map(c => [c.label, c.source, c.f.projection.toFixed(1), c.f.floor.toFixed(1), c.f.ceiling.toFixed(1), c.f.salary, c.f.own.toFixed(0), c.f.shape, c.f.flags.join('; '), ...c.f.line.map(p => p.name), c.ids.join(' ')])]), '');
+  const tour = contests.filter(c => c.approach !== 'cash').flatMap(c => c.entries).filter(entry => assignments.has(entry.id));
+  if (tour.length) {
+    const use = new Map();
+    for (const entry of tour) for (const id of assignments.get(entry.id).ids) use.set(id, (use.get(id) || 0) + 1);
+    out.push('## Draft exposure, tournament entries', '', 'Share of the ' + tour.length + ' drafted tournament entries that include each player. No exposure limit was applied unless the owner set one.', '',
+      csv([['Player', 'Pos', 'Team', 'Entries', 'Share %'], ...[...use].sort((a, b) => b[1] - a[1]).map(([id, n]) => { const p = byId.get(id); return [p.name, p.pos, p.team, n, Math.round(100 * n / tour.length)]; })]), '');
+  }
+  const pool = players.filter(p => Number(p.projection) > 0 || p.action).sort((a, b) => POSITIONS.indexOf(a.pos) - POSITIONS.indexOf(b.pos) || Number(b.projection) - Number(a.projection));
+  out.push('## Player pool', '', 'Players with a projection, plus any the owner locked or ruled out. Status LOCK means the owner wants this player used; OUT means never use. Max % is the owner\'s personal exposure limit, if set.', '',
+    csv([['ID', 'Name', 'Pos', 'Team', 'Opp', 'Kickoff', 'Salary', 'Proj', 'Floor', 'Ceiling', 'Range', 'Own %', 'Edited', 'Status', 'Max %'],
+    ...pool.map(p => { const b = base.get(p.id); return [p.id, p.name, p.pos, p.team, (p.home ? 'vs ' : '@ ') + p.opp, p.when, p.salary, p.projection, floorOf(p), ceilOf(p), p.floor != null || p.ceiling != null ? 'SET' : 'DEFAULT', p.ownership ?? '',
+      b && isEdited(p, b) ? 'EDITED' : '', p.action === 'lock' ? 'LOCK' : p.action === 'out' ? 'OUT' : '', p.cap ?? '']; })]), '');
+  return out.join('\n');
+}
+$('savePack').onclick = () => download(buildPack(), 'dfs-ai-review-pack.md', 'text/markdown');
+$('copyPack').onclick = () => copy(buildPack(), 'AI pack');
+
+// Put nine players into legal DraftKings slots (latest kickoff in FLEX). Returns null when the set cannot make a roster.
+function arrange(ids) {
+  const line = ids.map(id => byId.get(id));
+  if (line.length !== 9 || line.some(p => !p) || new Set(ids).size !== 9) return null;
+  const by = Object.fromEntries(POSITIONS.map(pos => [pos, line.filter(p => p.pos === pos)]));
+  if (by.QB.length !== 1 || by.DST.length !== 1 || by.RB.length < 2 || by.WR.length < 3 || by.TE.length < 1) return null;
+  const surplus = by.RB.length === 3 ? 'RB' : by.WR.length === 4 ? 'WR' : by.TE.length === 2 ? 'TE' : null;
+  if (!surplus) return null;
+  const flex = by[surplus].slice().sort((a, b) => b.start - a.start || a.salary - b.salary)[0];
+  by[surplus] = by[surplus].filter(p => p !== flex);
+  for (const pos of ['RB', 'WR', 'TE']) by[pos].sort((a, b) => b.salary - a.salary);
+  return [...by.QB, ...by.RB, ...by.WR, ...by.TE, flex, ...by.DST].map(p => p.id);
+}
+function applyAnswer(text) {
+  if (!labels.size) candidates();
+  const known = new Map(entries.map(entry => [entry.id, entry]));
+  const problems = [], done = new Set();
+  let applied = 0;
+  for (const raw of parseCsv(text.replace(/```[a-z]*/gi, '').replace(/^\s*\|/gm, '').replace(/\|\s*$/gm, '').replace(/\s*\|\s*/g, ','))) {
+    const cells = raw.map(cell => cell.trim());
+    const entryId = (/^\d{6,}$/.exec(cells[0] || '') || [])[0];
+    if (!entryId) continue;
+    if (!known.has(entryId)) { problems.push(entryId + ': not one of your entries'); continue; }
+    if (done.has(entryId)) { problems.push(entryId + ': listed more than once, first row kept'); continue; }
+    const rest = cells.slice(1).filter(Boolean);
+    const label = rest.find(cell => /^L\d+$/i.test(cell));
+    let ids = null;
+    if (label) {
+      ids = labels.get(label.toUpperCase());
+      if (!ids) { problems.push(entryId + ': ' + label + ' is not a lineup in the pack made on this page'); continue; }
+    } else {
+      const found = rest.map(cell => (/(\d{6,})/.exec(cell) || [])[1]).filter(Boolean);
+      if (found.length !== 9) { problems.push(entryId + ': expected a lineup label or 9 player IDs, found ' + found.length); continue; }
+      const missing = found.filter(id => !byId.has(id));
+      if (missing.length) { problems.push(entryId + ': unknown player ID ' + missing.join(', ')); continue; }
+      ids = arrange(found);
+      if (!ids) { problems.push(entryId + ': those nine players do not make a legal roster'); continue; }
+    }
+    done.add(entryId);
+    assignments.set(entryId, {ids, source: 'AI'});
+    applied++;
+  }
+  const status = $('answerStatus');
+  if (!applied && !problems.length) { status.textContent = 'No rows starting with an Entry ID were found. Paste the table the AI returned.'; status.className = 'status bad'; return; }
+  status.textContent = 'Applied ' + applied + ' entr' + (applied === 1 ? 'y' : 'ies') + '.' + (problems.length ? ' ' + problems.length + ' row' + (problems.length === 1 ? ' was' : 's were') + ' rejected: ' + problems.slice(0, 6).join('; ') + (problems.length > 6 ? '; and ' + (problems.length - 6) + ' more.' : '.') : ' Every row was accepted. Review the checks in step 4.');
+  status.className = 'status' + (problems.length ? ' warn' : '');
+  if (applied) { renderSlate(); $('slateStep').hidden = false; renderPackLine(); }
+}
+$('applyAnswer').onclick = () => applyAnswer($('answer').value);
+$('answerFile').onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  $('answer').value = await file.text();
+  applyAnswer($('answer').value);
+};
 
 renderCarry();
 </script>
