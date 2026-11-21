@@ -357,7 +357,7 @@ function readDraftKings(source) {
     const pos = row[col.Position] || '';
     if (!pos) continue;
     const id = row[col.ID] || '', name = row[col.Name] || '', team = row[col.TeamAbbrev] || '';
-    const salary = Number(row[col.Salary]);
+    const salary = Number(String(row[col.Salary] ?? '').replace(/[$,\s]/g, ''));
     const info = row[col['Game Info']] || '';
     const game = info.split(/\s/)[0];
     const teams = game.split('@');
@@ -724,10 +724,50 @@ const floorOf = p => p.projection === '' ? '' : p.floor != null ? p.floor : roun
 const ceilOf = p => p.projection === '' ? '' : p.ceiling != null ? p.ceiling : round2(Number(p.projection) * 1.5);
 let slate = null, baseline = [], players = [], byId = new Map();
 
+/* The slate comes from the owner's Google Sheet (tabs: Settings, Salaries, Projections), read fresh on every visit.
+   slate.json is the backup copy, used only when the sheet cannot be reached or read. */
+const SHEET = {id: '1kwjG8p2u0aDJQr41Sc4Kn3eTEQqJk4P_hYM79WG7aD4',
+  tabs: {Settings: 1986183642, Salaries: 845820190, Projections: 945585501}};
+async function sheetCsv(tab, range) {
+  const root = 'https://docs.google.com/spreadsheets/d/' + SHEET.id;
+  const urls = [
+    root + '/gviz/tq?tqx=out:csv&headers=' + (range ? 0 : 1) + '&sheet=' + encodeURIComponent(tab) + (range ? '&range=' + range : ''),
+    root + '/export?format=csv&gid=' + SHEET.tabs[tab] + (range ? '&range=' + range : '')
+  ];
+  let last;
+  for (const url of urls) {
+    const control = new AbortController(), timer = setTimeout(() => control.abort(), 6000);
+    try {
+      const response = await fetch(url, {cache: 'no-store', credentials: 'omit', signal: control.signal});
+      const text = await response.text();
+      if (response.ok && !/^\s*<(!doctype|html)/i.test(text)) return text;
+      last = Error('HTTP ' + response.status);
+    } catch (error) { last = error; }
+    finally { clearTimeout(timer); }
+  }
+  throw last;
+}
+async function sheetSlate() {
+  const [salaries, projections, settings] = await Promise.all([
+    sheetCsv('Salaries'), sheetCsv('Projections'), sheetCsv('Settings', 'A1:B12').catch(() => '')]);
+  const merged = applyProjections(readDraftKings(salaries).players, readProjections(projections).list);
+  if (!merged.matched) throw Error('No projection rows matched the salaries.');
+  const setting = pattern => ((parseCsv(settings).find(row => pattern.test(row[0] || '')) || [])[1] || '').trim();
+  const name = setting(/^slate( name)?$/i);
+  if (!name) throw Error('The sheet has no slate name.');
+  const when = new Date(setting(/^(last )?updated( on| at)?$/i));
+  return {name, source: 'sheet', updated: isNaN(when) ? null : when.toISOString(), by: setting(/^(updated )?by$/i) || 'jamestroupis',
+    note: setting(/^(sources?|note)/i),
+    players: merged.players.map(p => PLAYER_KEYS.map(key => key === 'home' ? (p.home ? 1 : 0) : p[key] ?? null))};
+}
 async function loadSlate(url) {
-  const response = await fetch(url, {cache: 'no-cache'});
-  if (!response.ok) throw Error('Slate data did not load.');
-  slate = await response.json();
+  try { slate = await sheetSlate(); }
+  catch (error) {
+    console.warn('Google Sheet slate unavailable, using the backup slate file.', error);
+    const response = await fetch(url, {cache: 'no-cache'});
+    if (!response.ok) throw Error('Slate data did not load.');
+    slate = await response.json();
+  }
   baseline = slate.players.map(row => ({...Object.fromEntries(PLAYER_KEYS.map((key, i) => [key, row[i] ?? null])), action: '', cap: null}));
   setPlayers(baseline.map(p => ({...p})));
   loadEdits();
@@ -757,7 +797,7 @@ function loadEdits() {
 }
 const isEdited = (p, b) => p.projection !== b.projection || p.ownership !== b.ownership || p.floor !== b.floor || p.ceiling !== b.ceiling;
 function updatedLine() {
-  if (!slate.updated) return '';
+  if (!slate.updated) return slate.source === 'sheet' ? ' · Projections by ' + (slate.by || 'jamestroupis') : '';
   const when = new Date(slate.updated);
   if (isNaN(when)) return '';
   return ' · Projections updated by ' + (slate.by || 'jamestroupis') + ', ' + when.toLocaleString('en-US', {weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short'});
@@ -1103,7 +1143,7 @@ function buildDocument() {
   }
   const fees = entries.reduce((sum, entry) => sum + feeOf(entry), 0);
   const empty = entries.filter(entry => !hasLineup(entry)).length;
-  const stamp = slate.updated ? new Date(slate.updated).toISOString().slice(0, 16).replace('T', ' ') + ' UTC by ' + (slate.by || 'jamestroupis') : 'unknown';
+  const stamp = slate.updated ? new Date(slate.updated).toISOString().slice(0, 16).replace('T', ' ') + ' UTC by ' + (slate.by || 'jamestroupis') : slate.source === 'sheet' ? 'time not recorded, by ' + (slate.by || 'jamestroupis') : 'unknown';
   const notes = $('notes').value.trim();
   const csv = rows => '```csv\n' + rows.map(csvLine).join('\n') + '\n```';
   const out = [];
