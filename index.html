@@ -266,6 +266,7 @@ td.sum{white-space:normal;min-width:260px}
     <h1>NFL DFS Optimizer</h1>
     <p class="slate">A place to play with projections and build lineups. Nothing here touches your contests.</p>
     <p class="slate" id="slateLine"></p>
+    <p class="slate small" id="sourceLine" style="max-width:80ch"></p>
     <nav class="nav" aria-label="Tools"><a href="./" aria-current="page">Optimizer</a><a href="lineup-setup/">Lineup Setup</a></nav>
   </div>
   <p class="private"><strong>Runs entirely in your browser.</strong>Your DraftKings files and projections never leave this device.</p>
@@ -403,6 +404,7 @@ td.sum{white-space:normal;min-width:260px}
   <p class="small muted" style="margin-top:8px;max-width:70ch">Load this week's DraftKings salaries and your projections on the Players tab, name the slate, then download slate.json and replace that file on the site. Both pages read it.</p>
   <div class="bar"><label class="small" for="slateName">Slate name</label><input id="slateName" type="text" maxlength="80">
     <label class="small" for="slateBy">Updated by</label><input id="slateBy" type="text" maxlength="40" value="jamestroupis" style="min-width:140px">
+    <label class="small" for="slateNote">Sources shown to visitors</label><input id="slateNote" type="text" maxlength="400" style="flex:1 1 100%">
     <button class="btn primary" id="publish" type="button">Download slate.json</button></div>
   <p class="status" id="ownerStatus" role="status"></p>
 </details></footer>
@@ -1154,6 +1156,7 @@ const view = {tab: 'players', pos: 'ALL', sort: 'projection', dir: -1};
 /* --- header and tabs --- */
 function renderSlate() {
   const games = new Set(players.map(p => p.game)).size;
+  $('sourceLine').textContent = slate.note || '';
   $('slateLine').textContent = slate.name + updatedLine() + ' · ' + games + ' games · ' + players.length + ' players';
   $('nPlayers').textContent = players.filter(p => Number(p.projection) > 0).length;
 }
@@ -1196,8 +1199,8 @@ function renderPool() {
       '<td><span class="pos ' + p.pos + '">' + p.pos + '</span></td>' +
       '<td class="r dim">' + money(p.salary) + '</td>' +
       '<td class="r"><input type="number" step="any" data-field="projection" value="' + esc(p.projection) + '" class="' + (p.projection !== b.projection ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' projected points"' + (p.projection !== b.projection ? ' title="Was ' + esc(b.projection || 'blank') + '"' : '') + '></td>' +
-      '<td class="r"><input type="number" step="any" data-field="floor" value="' + floorOf(p) + '" class="' + (p.floor != null ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' floor"></td>' +
-      '<td class="r"><input type="number" step="any" data-field="ceiling" value="' + ceilOf(p) + '" class="' + (p.ceiling != null ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' ceiling"></td>' +
+      '<td class="r"><input type="number" step="any" data-field="floor" value="' + floorOf(p) + '" class="' + (p.floor !== b.floor ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' floor"></td>' +
+      '<td class="r"><input type="number" step="any" data-field="ceiling" value="' + ceilOf(p) + '" class="' + (p.ceiling !== b.ceiling ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' ceiling"></td>' +
       '<td class="r"><input type="number" step="any" min="0" max="100" data-field="ownership" value="' + (p.ownership ?? '') + '" class="' + (p.ownership !== b.ownership ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' projected ownership"></td>' +
       '<td class="r dim val">' + value + '</td>' +
       '<td class="r"><input type="number" step="1" min="0" max="100" data-field="cap" value="' + (p.cap ?? '') + '" class="' + (p.cap != null ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' maximum exposure percent"></td></tr>';
@@ -1239,11 +1242,11 @@ $('pool').addEventListener('change', event => {
   if (!input.checkValidity()) { input.value = p[field] ?? ''; toast('Enter a whole percentage between 0 and 100.'); return; }
   if (field === 'projection') p.projection = input.value === '' ? '' : String(Number(input.value));
   else p[field] = input.value === '' ? null : Number(input.value);
-  input.classList.toggle('edited', field === 'cap' || field === 'floor' || field === 'ceiling' ? p[field] != null : p[field] !== b[field]);
+  input.classList.toggle('edited', field === 'cap' ? p.cap != null : p[field] !== b[field]);
   // A blank floor or ceiling goes back to the default; a new projection moves any defaults with it.
   for (const key of ['floor', 'ceiling']) {
     const cell = row.querySelector('input[data-field=' + key + ']');
-    if (p[key] == null) { cell.value = key === 'floor' ? floorOf(p) : ceilOf(p); cell.classList.remove('edited'); }
+    if (p[key] == null) { cell.value = key === 'floor' ? floorOf(p) : ceilOf(p); cell.classList.toggle('edited', b[key] != null); }
   }
   row.querySelector('.val').textContent = Number(p.projection) > 0 ? (Number(p.projection) / p.salary * 1000).toFixed(2) : '';
   changed();
@@ -1461,12 +1464,13 @@ function showOwner() {
   $('owner').hidden = false;
   $('dkLabel').hidden = false;
   $('slateName').value = slate.name;
+  $('slateNote').value = slate.note || '';
 }
 window.addEventListener('hashchange', showOwner);
 $('publish').onclick = () => {
   const name = $('slateName').value.trim();
   if (!name) { $('ownerStatus').textContent = 'Enter a slate name first.'; return; }
-  const data = {name, updated: new Date().toISOString(), by: $('slateBy').value.trim() || 'jamestroupis', players: players.map(p => PLAYER_KEYS.map(key => key === 'home' ? (p.home ? 1 : 0) : p[key] ?? null))};
+  const data = {name, updated: new Date().toISOString(), by: $('slateBy').value.trim() || 'jamestroupis', note: $('slateNote').value.trim(), players: players.map(p => PLAYER_KEYS.map(key => key === 'home' ? (p.home ? 1 : 0) : p[key] ?? null))};
   download(JSON.stringify(data), 'slate.json', 'application/json');
   $('ownerStatus').textContent = 'Downloaded slate.json with ' + players.filter(p => p.projection !== '').length + ' projected players. Your current projections are its starting point.';
 };
