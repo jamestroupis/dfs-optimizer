@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://optimizer.jamestroupis.com/sitemap.xml
