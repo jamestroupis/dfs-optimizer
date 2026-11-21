@@ -290,7 +290,7 @@ td.sum{white-space:normal;min-width:260px}
 
   <section class="panel step" id="slateStep" hidden>
     <h2><span>3</span>Your slate</h2>
-    <p class="level"><b>Model level D: point projections only.</b> Lineups are ranked by total projected points, less any ownership lean you set. No cash odds or win odds are shown, because nothing loaded here supports them.</p>
+    <p class="level"><b>Model level D: point projections only.</b> Lineups add up player numbers; they are not odds. Each player's floor and ceiling start at 50% below and 50% above the projection unless a value was entered or uploaded, and a lineup's floor and ceiling are simply the nine added together.</p>
     <div class="summary" id="slateSummary"></div>
     <div id="cashBox"></div>
     <details class="verdict" id="verdictBox" open><summary><span class="pill idle" id="verdict">NOT CHECKED</span><span id="verdictLine"></span></summary><ul class="checks" id="checks"></ul></details>
@@ -417,6 +417,9 @@ function readProjections(source) {
   const teamCol = find(['team', 'teamabbrev', 'tm']);
   const projCol = find(['projpts', 'projection', 'proj', 'fpts', 'points', 'projectedpoints', 'projectedpts', 'fantasypoints']);
   const ownCol = find(['projown', 'ownership', 'own', 'own%', 'projown%', 'projectedownership', 'ownpct']);
+  const floorCol = find(['floor', 'projfloor', 'low', 'flr']);
+  const ceilCol = find(['ceiling', 'ceil', 'projceiling', 'high', 'upside']);
+  const optional = (row, col) => { const text = col >= 0 ? row[col] : ''; const n = Number(text); return text === undefined || text === '' || !Number.isFinite(n) ? null : n; };
   if (projCol < 0 || (idCol < 0 && nameCol < 0)) {
     throw Error('This projections file needs a projection column (ProjPts or Projection) and an ID or Name column.');
   }
@@ -429,7 +432,7 @@ function readProjections(source) {
     const ownText = ownCol >= 0 ? (row[ownCol] || '').replace(/%$/, '') : '';
     const own = ownText === '' ? null : Number(ownText);
     list.push({id: idCol >= 0 ? row[idCol] : '', name: nameCol >= 0 ? row[nameCol] : '', pos: posCol >= 0 ? row[posCol] : '',
-      team: teamCol >= 0 ? row[teamCol] : '', projection,
+      team: teamCol >= 0 ? row[teamCol] : '', projection, floor: optional(row, floorCol), ceiling: optional(row, ceilCol),
       ownership: own !== null && Number.isFinite(own) && own >= 0 && own <= 100 ? own : null});
   }
   if (!list.length) throw Error('No rows with a numeric projection were found in this file.');
@@ -464,7 +467,7 @@ function applyProjections(players, list) {
     matched: updates.size, viaName, unmatched,
     players: players.map(p => {
       const row = updates.get(p.id);
-      return row ? {...p, projection: String(row.projection), ownership: row.ownership ?? p.ownership} : p;
+      return row ? {...p, projection: String(row.projection), ownership: row.ownership ?? p.ownership, floor: row.floor ?? null, ceiling: row.ceiling ?? null} : p;
     })
   };
 }
@@ -722,8 +725,9 @@ function entriesCsv(entries, assigned) {
     csvLine([e.id, e.contest, e.contestId, e.fee, ...assigned.get(e.id).ids]))].join('\r\n') + '\r\n';
 }
 function projectionsCsv(players) {
-  return [csvLine(['ID', 'Name', 'Position', 'Team', 'Salary', 'Projection', 'ProjOwn']),
-    ...players.map(p => csvLine([p.id, p.name, p.pos, p.team, p.salary, p.projection, p.ownership ?? '']))].join('\r\n') + '\r\n';
+  const range = (p, factor, own) => p.projection === '' ? '' : own != null ? own : Math.round(Number(p.projection) * factor * 100) / 100;
+  return [csvLine(['ID', 'Name', 'Position', 'Team', 'Salary', 'Projection', 'Floor', 'Ceiling', 'ProjOwn']),
+    ...players.map(p => csvLine([p.id, p.name, p.pos, p.team, p.salary, p.projection, range(p, .5, p.floor), range(p, 1.5, p.ceiling), p.ownership ?? '']))].join('\r\n') + '\r\n';
 }
 /* ---------- end pure logic ---------- */
 
@@ -731,14 +735,18 @@ function projectionsCsv(players) {
 const $ = id => document.getElementById(id);
 const esc = text => String(text).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const money = n => '$' + Number(n).toLocaleString('en-US');
-const PLAYER_KEYS = ['id', 'name', 'pos', 'team', 'opp', 'home', 'game', 'start', 'when', 'salary', 'projection', 'ownership'];
+const PLAYER_KEYS = ['id', 'name', 'pos', 'team', 'opp', 'home', 'game', 'start', 'when', 'salary', 'projection', 'ownership', 'floor', 'ceiling'];
+// Floor and ceiling default to 50% below and 50% above the projection until a value is entered or uploaded.
+const round2 = n => Math.round(n * 100) / 100;
+const floorOf = p => p.projection === '' ? '' : p.floor != null ? p.floor : round2(Number(p.projection) * .5);
+const ceilOf = p => p.projection === '' ? '' : p.ceiling != null ? p.ceiling : round2(Number(p.projection) * 1.5);
 let slate = null, baseline = [], players = [], byId = new Map();
 
 async function loadSlate(url) {
   const response = await fetch(url, {cache: 'no-cache'});
   if (!response.ok) throw Error('Slate data did not load.');
   slate = await response.json();
-  baseline = slate.players.map(row => ({...Object.fromEntries(PLAYER_KEYS.map((key, i) => [key, row[i]])), action: '', cap: null}));
+  baseline = slate.players.map(row => ({...Object.fromEntries(PLAYER_KEYS.map((key, i) => [key, row[i] ?? null])), action: '', cap: null}));
   setPlayers(baseline.map(p => ({...p})));
   loadEdits();
 }
@@ -754,7 +762,7 @@ function saveEdits() {
     const edits = {};
     for (const p of players) {
       const b = base.get(p.id);
-      if (p.action || p.cap != null || p.projection !== b.projection || p.ownership !== b.ownership) edits[p.id] = [p.projection, p.ownership, p.action, p.cap];
+      if (p.action || p.cap != null || isEdited(p, b)) edits[p.id] = [p.projection, p.ownership, p.action, p.cap, p.floor, p.ceiling];
     }
     localStorage.setItem(storeKey(), JSON.stringify(edits));
   } catch {}
@@ -762,21 +770,36 @@ function saveEdits() {
 function loadEdits() {
   try {
     const edits = JSON.parse(localStorage.getItem(storeKey()) || '{}');
-    for (const p of players) if (edits[p.id]) [p.projection, p.ownership, p.action, p.cap = null] = edits[p.id];
+    for (const p of players) if (edits[p.id]) [p.projection, p.ownership, p.action, p.cap = null, p.floor = null, p.ceiling = null] = edits[p.id];
   } catch {}
+}
+const isEdited = (p, b) => p.projection !== b.projection || p.ownership !== b.ownership || p.floor !== b.floor || p.ceiling !== b.ceiling;
+function updatedLine() {
+  if (!slate.updated) return '';
+  const when = new Date(slate.updated);
+  if (isNaN(when)) return '';
+  return ' · Projections updated by ' + (slate.by || 'jamestroupis') + ', ' + when.toLocaleString('en-US', {weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short'});
 }
 function editCounts() {
   const base = new Map(baseline.map(p => [p.id, p]));
   return {
     locks: players.filter(p => p.action === 'lock').length,
     outs: players.filter(p => p.action === 'out').length,
-    edited: players.filter(p => p.projection !== base.get(p.id).projection || p.ownership !== base.get(p.id).ownership).length,
+    edited: players.filter(p => isEdited(p, base.get(p.id))).length,
     caps: players.filter(p => p.cap != null).length
   };
 }
-const asRows = list => list.filter(p => p.projection !== '').map(p => ({id: p.id, name: p.name, pos: p.pos, team: p.team, projection: Number(p.projection), ownership: p.ownership}));
+const asRows = list => list.filter(p => p.projection !== '').map(p => ({id: p.id, name: p.name, pos: p.pos, team: p.team, projection: Number(p.projection), ownership: p.ownership, floor: p.floor, ceiling: p.ceiling}));
 // Swap in a DraftKings file's player list, carrying projections, locks and limits across.
 function adoptDraftKings(dk) {
+  // DraftKings issues new player IDs for every slate. If few IDs match, this is a different slate:
+  // start it clean so last week's numbers never ride along by name.
+  const fresh = dk.players.filter(p => byId.has(p.id)).length < dk.players.length / 2;
+  if (fresh) {
+    baseline = dk.players.map(p => ({...p, floor: null, ceiling: null, cap: null}));
+    setPlayers(baseline.map(p => ({...p})));
+    return {projected: 0, viaName: 0, fresh: true};
+  }
   const carriedBase = applyProjections(dk.players, asRows(baseline));
   const carried = applyProjections(dk.players, asRows(players));
   const kept = new Map(players.filter(p => p.action || p.cap != null).map(p => [p.id, p]));
@@ -820,10 +843,12 @@ function preflight() {
   if (players.filter(p => Number(p.projection) > 0 && p.action !== 'out').length < 9) return 'Fewer than 9 players have a projection. Load projections or enter them in the Optimizer.';
   return '';
 }
-const enginePlayers = () => players.map(p => ({id: p.id, pos: p.pos, team: p.team, game: p.game, start: p.start, salary: p.salary, projection: p.projection, ownership: p.ownership, action: p.action, cap: p.cap}));
+// metric: which number the optimizer adds up ('projection', 'floor' or 'ceiling').
+const enginePlayers = metric => players.map(p => ({id: p.id, pos: p.pos, team: p.team, game: p.game, start: p.start, salary: p.salary,
+  projection: !(Number(p.projection) > 0) ? '' : metric === 'floor' ? floorOf(p) : metric === 'ceiling' ? ceilOf(p) : p.projection, ownership: p.ownership, action: p.action, cap: p.cap}));
 // Runs the optimizer off the main thread. Returns {promise, stop}.
-function runOptimizer(rules, onProgress) {
-  const payload = {rules, players: enginePlayers()};
+function runOptimizer(rules, onProgress, metric) {
+  const payload = {rules, players: enginePlayers(metric)};
   let worker = null;
   const promise = new Promise((resolve, reject) => {
     const inline = () => setTimeout(() => resolve(optimize(payload.players, payload.rules, () => {})), 30);
@@ -856,12 +881,14 @@ function describe(ids) {
   const salary = line.reduce((sum, p) => sum + p.salary, 0);
   const projection = line.reduce((sum, p) => sum + (Number(p.projection) || 0), 0);
   const own = line.reduce((sum, p) => sum + (p.ownership || 0), 0);
+  const floor = line.reduce((sum, p) => sum + (Number(floorOf(p)) || 0), 0);
+  const ceiling = line.reduce((sum, p) => sum + (Number(ceilOf(p)) || 0), 0);
   const flags = [];
   if (salary < 48000) flags.push('Under $48,000');
   else if (50000 - salary > 500) flags.push(money(50000 - salary) + ' unused');
   if (facing.length) flags.push('DST faces ' + facing.map(p => p.name).join(', '));
   const shape = qb.team + ' ' + (mates.length ? 'QB + ' + mates.length : 'QB alone') + (backs.length ? ', ' + backs.length + ' bring-back' + (backs.length > 1 ? 's' : '') + ' (' + qb.opp + ')' : ', no bring-back');
-  return {line, qb, mates, backs, salary, projection, own, flags, shape};
+  return {line, qb, mates, backs, salary, projection, floor, ceiling, own, flags, shape};
 }
 function lineupRows(f) {
   return f.line.map((p, i) => {
@@ -1045,7 +1072,7 @@ function renderCarry() {
   const {locks, outs, edited, caps} = editCounts();
   const saved = loadPool();
   const usableCount = saved.filter(item => usable(item.ids)).length;
-  $('slateLine').textContent = slate.name + ' · ' + new Set(players.map(p => p.game)).size + ' games · ' + players.length + ' players';
+  $('slateLine').textContent = slate.name + updatedLine() + ' · ' + new Set(players.map(p => p.game)).size + ' games · ' + players.length + ' players';
   $('carryLine').innerHTML = 'From the <a href="../">Optimizer</a> on this device: <b>' + usableCount + '</b> saved lineup' + (usableCount === 1 ? '' : 's') +
     (saved.length > usableCount ? ' (' + (saved.length - usableCount) + ' more no longer usable)' : '') + ', ' + edited + ' edited projections, ' + locks + ' locked, ' + outs + ' out, ' + caps + ' personal limits.' +
     (usableCount ? '' : ' With none saved, Lineup Setup builds every lineup for you.');
@@ -1075,10 +1102,10 @@ $('dkFile').onchange = async event => {
     contests = [...map.values()].sort((a, b) => b.fee - a.fee || b.entries.length - a.entries.length);
     for (const c of contests) { c.field = fieldFloor(c.name, c.fee); c.approach = suggest(c.name, c.fee); }
     reset();
-    let message = 'Loaded ' + entries.length + ' entries in ' + contests.length + ' contests from ' + file.name + '. ' + carried.projected + ' of ' + dk.players.length + ' players have a projection.';
+    let message = 'Loaded ' + entries.length + ' entries in ' + contests.length + ' contests from ' + file.name + '. ' + (carried.fresh ? 'These entries are for a different slate than the one posted here, so it starts with no projections. ' : '') + carried.projected + ' of ' + dk.players.length + ' players have a projection.';
     if (dk.skipped) message += ' Skipped ' + dk.skipped + ' players whose games are closed.';
     const warn = carried.projected < 20;
-    if (warn) message += ' This looks like a different slate. Load a projections CSV for it.';
+    if (warn) message += ' Load a projections CSV for it.';
     status.textContent = message;
     status.className = 'status' + (warn ? ' warn' : '');
     $('planStep').hidden = false;
@@ -1257,7 +1284,7 @@ function renderSlate() {
     const best = built.best ? describe(built.best) : null;
     const gap = best && fromSavedCash ? best.projection - f.projection : 0;
     $('cashBox').innerHTML = '<article class="card" style="max-width:520px;border-color:var(--accent);border-width:2px;margin-bottom:12px"><header><span class="n">CASH</span><span class="pts num">' + f.projection.toFixed(1) +
-      '<small>pts</small></span><span class="meta num"><b>' + money(f.salary) + '</b><br>' + money(50000 - f.salary) + ' left · own sum ' + f.own.toFixed(0) + '%</span></header><table><tbody>' + lineupRows(f) + '</tbody></table>' +
+      '<small>floor ' + f.floor.toFixed(1) + ' · ceiling ' + f.ceiling.toFixed(1) + '</small></span><span class="meta num"><b>' + money(f.salary) + '</b><br>' + money(50000 - f.salary) + ' left · own sum ' + f.own.toFixed(0) + '%</span></header><table><tbody>' + lineupRows(f) + '</tbody></table>' +
       '<div class="shape"><b>Your cash lineup, in all ' + n + ' cash entr' + (n === 1 ? 'y' : 'ies') + '.</b> ' + (fromSavedCash ? 'It is the highest-projected of your saved lineups' + (gap > 0.005 ? '.' : ', and nothing projects higher under your current locks and projections.') :
         'Built here: the highest total projection possible under your current locks and projections.') + '</div>' +
       (f.flags.length ? '<div class="flags">' + f.flags.map(flag => '<span class="flag">' + esc(flag) + '</span>').join('') + '</div>' : '') + '</article>';

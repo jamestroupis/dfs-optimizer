@@ -273,6 +273,9 @@ td.sum{white-space:normal;min-width:260px}
       <div class="field"><label for="bring">Bring-back</label>
         <select id="bring"><option value="0">None</option><option value="1">At least 1</option><option value="2">At least 2</option><option value="3">At least 3</option></select>
         <span class="hint">Runners or pass catchers from the team facing your quarterback. Use 2 or more for a game stack.</span></div>
+      <div class="field"><label for="metric">Optimize for</label>
+        <select id="metric"><option value="projection">Projection</option><option value="floor">Floor</option><option value="ceiling">Ceiling</option></select>
+        <span class="hint">Which player number the lineups add up. With default floors and ceilings all three give the same lineups.</span></div>
       <div class="field"><label for="lean">Ownership lean</label><input id="lean" type="number" min="0" max="10" step="0.1" value="0" required>
         <span class="hint">Points taken off a player for every 10% of projected ownership. 0 ranks on projection alone.</span></div>
       <div class="field"><label for="exposure">Max exposure %</label><input id="exposure" type="number" min="1" max="100" step="1" value="100" required>
@@ -320,6 +323,8 @@ td.sum{white-space:normal;min-width:260px}
           <th scope="col">Pos</th>
           <th scope="col" class="r" data-sort="salary"><button type="button">Salary</button></th>
           <th scope="col" class="r" data-sort="projection"><button type="button">Proj pts</button></th>
+          <th scope="col" class="r" title="Defaults to 50% below the projection">Floor</th>
+          <th scope="col" class="r" title="Defaults to 50% above the projection">Ceiling</th>
           <th scope="col" class="r" data-sort="ownership"><button type="button">Own %</button></th>
           <th scope="col" class="r" data-sort="value" title="Projected points per $1,000 of salary"><button type="button">Pts / $1K</button></th>
           <th scope="col" class="r" title="The most lineups this player can appear in. Blank means no personal limit.">Max %</th>
@@ -331,12 +336,12 @@ td.sum{white-space:normal;min-width:260px}
     <section class="view" id="view-lineups" role="tabpanel" aria-labelledby="tab-lineups" hidden>
       <div id="lineupsEmpty" class="empty">Set your rules and press <b>Build lineups</b>. Your optimized lineups will show up here.</div>
       <div id="lineupsBody" hidden>
-        <p class="level"><b>Model level D: point projections only.</b> Lineups are ranked by total projected points, less any ownership lean you set. No floor, ceiling, cash odds or win odds are shown, because nothing loaded here supports them.</p>
+        <p class="level"><b>Model level D: point projections only.</b> Lineups add up player numbers; they are not odds. Each player's floor and ceiling start at 50% below and 50% above the projection unless a value was entered or uploaded, and a lineup's floor and ceiling are simply the nine added together.</p>
         <div class="summary" id="summary"></div>
         <p class="status warn" id="stale" hidden>You changed players or rules after this build. Build again to refresh.</p>
         <div class="bar">
           <label class="small">Sort by <select id="sort">
-            <option value="number">Build order</option><option value="median">Projection</option>
+            <option value="number">Build order</option><option value="median">Projection</option><option value="floor">Floor</option><option value="ceiling">Ceiling</option>
             <option value="own">Lowest ownership</option><option value="salary">Salary</option></select></label>
           <span class="grow"></span>
           <button class="btn primary" id="saveLineups" type="button">Download CSV</button>
@@ -381,6 +386,7 @@ td.sum{white-space:normal;min-width:260px}
 <footer class="owner" id="owner" hidden><details class="panel" open><summary>Publish a new slate (site owner)</summary>
   <p class="small muted" style="margin-top:8px;max-width:70ch">Load this week's DraftKings salaries and your projections on the Players tab, name the slate, then download slate.json and replace that file on the site. Both pages read it.</p>
   <div class="bar"><label class="small" for="slateName">Slate name</label><input id="slateName" type="text" maxlength="80">
+    <label class="small" for="slateBy">Updated by</label><input id="slateBy" type="text" maxlength="40" value="jamestroupis" style="min-width:140px">
     <button class="btn primary" id="publish" type="button">Download slate.json</button></div>
   <p class="status" id="ownerStatus" role="status"></p>
 </details></footer>
@@ -483,6 +489,9 @@ function readProjections(source) {
   const teamCol = find(['team', 'teamabbrev', 'tm']);
   const projCol = find(['projpts', 'projection', 'proj', 'fpts', 'points', 'projectedpoints', 'projectedpts', 'fantasypoints']);
   const ownCol = find(['projown', 'ownership', 'own', 'own%', 'projown%', 'projectedownership', 'ownpct']);
+  const floorCol = find(['floor', 'projfloor', 'low', 'flr']);
+  const ceilCol = find(['ceiling', 'ceil', 'projceiling', 'high', 'upside']);
+  const optional = (row, col) => { const text = col >= 0 ? row[col] : ''; const n = Number(text); return text === undefined || text === '' || !Number.isFinite(n) ? null : n; };
   if (projCol < 0 || (idCol < 0 && nameCol < 0)) {
     throw Error('This projections file needs a projection column (ProjPts or Projection) and an ID or Name column.');
   }
@@ -495,7 +504,7 @@ function readProjections(source) {
     const ownText = ownCol >= 0 ? (row[ownCol] || '').replace(/%$/, '') : '';
     const own = ownText === '' ? null : Number(ownText);
     list.push({id: idCol >= 0 ? row[idCol] : '', name: nameCol >= 0 ? row[nameCol] : '', pos: posCol >= 0 ? row[posCol] : '',
-      team: teamCol >= 0 ? row[teamCol] : '', projection,
+      team: teamCol >= 0 ? row[teamCol] : '', projection, floor: optional(row, floorCol), ceiling: optional(row, ceilCol),
       ownership: own !== null && Number.isFinite(own) && own >= 0 && own <= 100 ? own : null});
   }
   if (!list.length) throw Error('No rows with a numeric projection were found in this file.');
@@ -530,7 +539,7 @@ function applyProjections(players, list) {
     matched: updates.size, viaName, unmatched,
     players: players.map(p => {
       const row = updates.get(p.id);
-      return row ? {...p, projection: String(row.projection), ownership: row.ownership ?? p.ownership} : p;
+      return row ? {...p, projection: String(row.projection), ownership: row.ownership ?? p.ownership, floor: row.floor ?? null, ceiling: row.ceiling ?? null} : p;
     })
   };
 }
@@ -788,8 +797,9 @@ function entriesCsv(entries, assigned) {
     csvLine([e.id, e.contest, e.contestId, e.fee, ...assigned.get(e.id).ids]))].join('\r\n') + '\r\n';
 }
 function projectionsCsv(players) {
-  return [csvLine(['ID', 'Name', 'Position', 'Team', 'Salary', 'Projection', 'ProjOwn']),
-    ...players.map(p => csvLine([p.id, p.name, p.pos, p.team, p.salary, p.projection, p.ownership ?? '']))].join('\r\n') + '\r\n';
+  const range = (p, factor, own) => p.projection === '' ? '' : own != null ? own : Math.round(Number(p.projection) * factor * 100) / 100;
+  return [csvLine(['ID', 'Name', 'Position', 'Team', 'Salary', 'Projection', 'Floor', 'Ceiling', 'ProjOwn']),
+    ...players.map(p => csvLine([p.id, p.name, p.pos, p.team, p.salary, p.projection, range(p, .5, p.floor), range(p, 1.5, p.ceiling), p.ownership ?? '']))].join('\r\n') + '\r\n';
 }
 /* ---------- end pure logic ---------- */
 
@@ -797,14 +807,18 @@ function projectionsCsv(players) {
 const $ = id => document.getElementById(id);
 const esc = text => String(text).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const money = n => '$' + Number(n).toLocaleString('en-US');
-const PLAYER_KEYS = ['id', 'name', 'pos', 'team', 'opp', 'home', 'game', 'start', 'when', 'salary', 'projection', 'ownership'];
+const PLAYER_KEYS = ['id', 'name', 'pos', 'team', 'opp', 'home', 'game', 'start', 'when', 'salary', 'projection', 'ownership', 'floor', 'ceiling'];
+// Floor and ceiling default to 50% below and 50% above the projection until a value is entered or uploaded.
+const round2 = n => Math.round(n * 100) / 100;
+const floorOf = p => p.projection === '' ? '' : p.floor != null ? p.floor : round2(Number(p.projection) * .5);
+const ceilOf = p => p.projection === '' ? '' : p.ceiling != null ? p.ceiling : round2(Number(p.projection) * 1.5);
 let slate = null, baseline = [], players = [], byId = new Map();
 
 async function loadSlate(url) {
   const response = await fetch(url, {cache: 'no-cache'});
   if (!response.ok) throw Error('Slate data did not load.');
   slate = await response.json();
-  baseline = slate.players.map(row => ({...Object.fromEntries(PLAYER_KEYS.map((key, i) => [key, row[i]])), action: '', cap: null}));
+  baseline = slate.players.map(row => ({...Object.fromEntries(PLAYER_KEYS.map((key, i) => [key, row[i] ?? null])), action: '', cap: null}));
   setPlayers(baseline.map(p => ({...p})));
   loadEdits();
 }
@@ -820,7 +834,7 @@ function saveEdits() {
     const edits = {};
     for (const p of players) {
       const b = base.get(p.id);
-      if (p.action || p.cap != null || p.projection !== b.projection || p.ownership !== b.ownership) edits[p.id] = [p.projection, p.ownership, p.action, p.cap];
+      if (p.action || p.cap != null || isEdited(p, b)) edits[p.id] = [p.projection, p.ownership, p.action, p.cap, p.floor, p.ceiling];
     }
     localStorage.setItem(storeKey(), JSON.stringify(edits));
   } catch {}
@@ -828,21 +842,36 @@ function saveEdits() {
 function loadEdits() {
   try {
     const edits = JSON.parse(localStorage.getItem(storeKey()) || '{}');
-    for (const p of players) if (edits[p.id]) [p.projection, p.ownership, p.action, p.cap = null] = edits[p.id];
+    for (const p of players) if (edits[p.id]) [p.projection, p.ownership, p.action, p.cap = null, p.floor = null, p.ceiling = null] = edits[p.id];
   } catch {}
+}
+const isEdited = (p, b) => p.projection !== b.projection || p.ownership !== b.ownership || p.floor !== b.floor || p.ceiling !== b.ceiling;
+function updatedLine() {
+  if (!slate.updated) return '';
+  const when = new Date(slate.updated);
+  if (isNaN(when)) return '';
+  return ' · Projections updated by ' + (slate.by || 'jamestroupis') + ', ' + when.toLocaleString('en-US', {weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short'});
 }
 function editCounts() {
   const base = new Map(baseline.map(p => [p.id, p]));
   return {
     locks: players.filter(p => p.action === 'lock').length,
     outs: players.filter(p => p.action === 'out').length,
-    edited: players.filter(p => p.projection !== base.get(p.id).projection || p.ownership !== base.get(p.id).ownership).length,
+    edited: players.filter(p => isEdited(p, base.get(p.id))).length,
     caps: players.filter(p => p.cap != null).length
   };
 }
-const asRows = list => list.filter(p => p.projection !== '').map(p => ({id: p.id, name: p.name, pos: p.pos, team: p.team, projection: Number(p.projection), ownership: p.ownership}));
+const asRows = list => list.filter(p => p.projection !== '').map(p => ({id: p.id, name: p.name, pos: p.pos, team: p.team, projection: Number(p.projection), ownership: p.ownership, floor: p.floor, ceiling: p.ceiling}));
 // Swap in a DraftKings file's player list, carrying projections, locks and limits across.
 function adoptDraftKings(dk) {
+  // DraftKings issues new player IDs for every slate. If few IDs match, this is a different slate:
+  // start it clean so last week's numbers never ride along by name.
+  const fresh = dk.players.filter(p => byId.has(p.id)).length < dk.players.length / 2;
+  if (fresh) {
+    baseline = dk.players.map(p => ({...p, floor: null, ceiling: null, cap: null}));
+    setPlayers(baseline.map(p => ({...p})));
+    return {projected: 0, viaName: 0, fresh: true};
+  }
   const carriedBase = applyProjections(dk.players, asRows(baseline));
   const carried = applyProjections(dk.players, asRows(players));
   const kept = new Map(players.filter(p => p.action || p.cap != null).map(p => [p.id, p]));
@@ -886,10 +915,12 @@ function preflight() {
   if (players.filter(p => Number(p.projection) > 0 && p.action !== 'out').length < 9) return 'Fewer than 9 players have a projection. Load projections or enter them in the Optimizer.';
   return '';
 }
-const enginePlayers = () => players.map(p => ({id: p.id, pos: p.pos, team: p.team, game: p.game, start: p.start, salary: p.salary, projection: p.projection, ownership: p.ownership, action: p.action, cap: p.cap}));
+// metric: which number the optimizer adds up ('projection', 'floor' or 'ceiling').
+const enginePlayers = metric => players.map(p => ({id: p.id, pos: p.pos, team: p.team, game: p.game, start: p.start, salary: p.salary,
+  projection: !(Number(p.projection) > 0) ? '' : metric === 'floor' ? floorOf(p) : metric === 'ceiling' ? ceilOf(p) : p.projection, ownership: p.ownership, action: p.action, cap: p.cap}));
 // Runs the optimizer off the main thread. Returns {promise, stop}.
-function runOptimizer(rules, onProgress) {
-  const payload = {rules, players: enginePlayers()};
+function runOptimizer(rules, onProgress, metric) {
+  const payload = {rules, players: enginePlayers(metric)};
   let worker = null;
   const promise = new Promise((resolve, reject) => {
     const inline = () => setTimeout(() => resolve(optimize(payload.players, payload.rules, () => {})), 30);
@@ -922,12 +953,14 @@ function describe(ids) {
   const salary = line.reduce((sum, p) => sum + p.salary, 0);
   const projection = line.reduce((sum, p) => sum + (Number(p.projection) || 0), 0);
   const own = line.reduce((sum, p) => sum + (p.ownership || 0), 0);
+  const floor = line.reduce((sum, p) => sum + (Number(floorOf(p)) || 0), 0);
+  const ceiling = line.reduce((sum, p) => sum + (Number(ceilOf(p)) || 0), 0);
   const flags = [];
   if (salary < 48000) flags.push('Under $48,000');
   else if (50000 - salary > 500) flags.push(money(50000 - salary) + ' unused');
   if (facing.length) flags.push('DST faces ' + facing.map(p => p.name).join(', '));
   const shape = qb.team + ' ' + (mates.length ? 'QB + ' + mates.length : 'QB alone') + (backs.length ? ', ' + backs.length + ' bring-back' + (backs.length > 1 ? 's' : '') + ' (' + qb.opp + ')' : ', no bring-back');
-  return {line, qb, mates, backs, salary, projection, own, flags, shape};
+  return {line, qb, mates, backs, salary, projection, floor, ceiling, own, flags, shape};
 }
 function lineupRows(f) {
   return f.line.map((p, i) => {
@@ -1088,7 +1121,7 @@ const view = {tab: 'players', pos: 'ALL', sort: 'projection', dir: -1};
 /* --- header and tabs --- */
 function renderSlate() {
   const games = new Set(players.map(p => p.game)).size;
-  $('slateLine').textContent = slate.name + ' · ' + games + ' games · ' + players.length + ' players';
+  $('slateLine').textContent = slate.name + updatedLine() + ' · ' + games + ' games · ' + players.length + ' players';
   $('nPlayers').textContent = players.filter(p => Number(p.projection) > 0).length;
 }
 function showTab(name) {
@@ -1130,10 +1163,12 @@ function renderPool() {
       '<td><span class="pos ' + p.pos + '">' + p.pos + '</span></td>' +
       '<td class="r dim">' + money(p.salary) + '</td>' +
       '<td class="r"><input type="number" step="any" data-field="projection" value="' + esc(p.projection) + '" class="' + (p.projection !== b.projection ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' projected points"' + (p.projection !== b.projection ? ' title="Was ' + esc(b.projection || 'blank') + '"' : '') + '></td>' +
+      '<td class="r"><input type="number" step="any" data-field="floor" value="' + floorOf(p) + '" class="' + (p.floor != null ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' floor"></td>' +
+      '<td class="r"><input type="number" step="any" data-field="ceiling" value="' + ceilOf(p) + '" class="' + (p.ceiling != null ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' ceiling"></td>' +
       '<td class="r"><input type="number" step="any" min="0" max="100" data-field="ownership" value="' + (p.ownership ?? '') + '" class="' + (p.ownership !== b.ownership ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' projected ownership"></td>' +
       '<td class="r dim val">' + value + '</td>' +
       '<td class="r"><input type="number" step="1" min="0" max="100" data-field="cap" value="' + (p.cap ?? '') + '" class="' + (p.cap != null ? 'edited' : '') + '" aria-label="' + esc(p.name) + ' maximum exposure percent"></td></tr>';
-  }).join('') || '<tr><td colspan="8" class="empty">No players match. Clear the search or turn off Hide unprojected.</td></tr>';
+  }).join('') || '<tr><td colspan="10" class="empty">No players match. Clear the search or turn off Hide unprojected.</td></tr>';
   for (const th of document.querySelectorAll('th[data-sort]')) {
     if (th.dataset.sort === view.sort) th.setAttribute('aria-sort', view.dir < 0 ? 'descending' : 'ascending');
     else th.removeAttribute('aria-sort');
@@ -1171,7 +1206,12 @@ $('pool').addEventListener('change', event => {
   if (!input.checkValidity()) { input.value = p[field] ?? ''; toast('Enter a whole percentage between 0 and 100.'); return; }
   if (field === 'projection') p.projection = input.value === '' ? '' : String(Number(input.value));
   else p[field] = input.value === '' ? null : Number(input.value);
-  input.classList.toggle('edited', field === 'cap' ? p.cap != null : p[field] !== b[field]);
+  input.classList.toggle('edited', field === 'cap' || field === 'floor' || field === 'ceiling' ? p[field] != null : p[field] !== b[field]);
+  // A blank floor or ceiling goes back to the default; a new projection moves any defaults with it.
+  for (const key of ['floor', 'ceiling']) {
+    const cell = row.querySelector('input[data-field=' + key + ']');
+    if (p[key] == null) { cell.value = key === 'floor' ? floorOf(p) : ceilOf(p); cell.classList.remove('edited'); }
+  }
   row.querySelector('.val').textContent = Number(p.projection) > 0 ? (Number(p.projection) / p.salary * 1000).toFixed(2) : '';
   changed();
 });
@@ -1210,11 +1250,11 @@ $('dkFile').onchange = async event => {
     const dk = readDraftKings(await file.text());
     const carried = adoptDraftKings(dk);
     results = [];
-    let message = 'Loaded ' + dk.players.length + ' players from ' + file.name + '. ' + carried.projected + ' have a projection' + (carried.viaName ? ' (' + carried.viaName + ' matched by name)' : '') + '.';
+    let message = 'Loaded ' + dk.players.length + ' players from ' + file.name + '. ' + (carried.fresh ? 'This is a new slate, so it starts with no projections. ' : '') + carried.projected + ' have a projection' + (carried.viaName ? ' (' + carried.viaName + ' matched by name)' : '') + '.';
     if (dk.skipped) message += ' Skipped ' + dk.skipped + ' rows for games that are closed or unreadable.';
     if (dk.entries) message += ' This file also holds ' + dk.entries.length + ' contest entries. Use Lineup Setup to fill them.';
     const warn = carried.projected < 20;
-    if (warn) message += ' This looks like a different slate. Load a projections CSV for it.';
+    if (warn) message += ' Load a projections CSV for it.';
     status.textContent = message;
     status.className = 'status' + (warn ? ' warn' : '');
     renderAll();
@@ -1304,7 +1344,7 @@ $('rules').onsubmit = event => {
   running = runOptimizer(rules, done => {
     $('progress').firstElementChild.style.width = (100 * done / rules.count) + '%';
     setStatus('Built ' + done + ' of ' + rules.count + '…');
-  });
+  }, $('metric').value);
   running.promise.then(data => finish(data, rules), () => {
     running = null;
     $('build').textContent = 'Build lineups';
@@ -1317,7 +1357,8 @@ $('rules').onsubmit = event => {
 function sorted() {
   const key = $('sort').value;
   const list = results.slice();
-  list.sort((a, b) => key === 'number' ? a.number - b.number : key === 'own' ? a.own - b.own || b.median - a.median : b[key] - a[key] || b.median - a.median);
+  const value = r => key === 'floor' || key === 'ceiling' ? describe(r.ids)[key] : r[key];
+  list.sort((a, b) => key === 'number' ? a.number - b.number : key === 'own' ? a.own - b.own || b.median - a.median : value(b) - value(a) || b.median - a.median);
   return list;
 }
 function renderLineups() {
@@ -1340,7 +1381,7 @@ function renderLineups() {
   $('cards').innerHTML = sorted().map(r => {
     const f = facts.get(r.number);
     const rows = lineupRows(f);
-    return '<article class="card"><header><span class="n">#' + r.number + '</span><span class="pts num">' + f.projection.toFixed(1) + '<small>pts</small></span>' +
+    return '<article class="card"><header><span class="n">#' + r.number + '</span><span class="pts num">' + f.projection.toFixed(1) + '<small>floor ' + f.floor.toFixed(1) + ' · ceiling ' + f.ceiling.toFixed(1) + '</small></span>' +
       '<span class="meta num"><b>' + money(f.salary) + '</b><br>' + money(50000 - f.salary) + ' left · own sum ' + f.own.toFixed(0) + '%</span></header><table><tbody>' + rows + '</tbody></table>' +
       '<div class="shape">' + esc(f.shape) + '</div>' + (f.flags.length ? '<div class="flags">' + f.flags.map(flag => '<span class="flag">' + esc(flag) + '</span>').join('') + '</div>' : '') + '</article>';
   }).join('');
@@ -1383,7 +1424,7 @@ window.addEventListener('hashchange', showOwner);
 $('publish').onclick = () => {
   const name = $('slateName').value.trim();
   if (!name) { $('ownerStatus').textContent = 'Enter a slate name first.'; return; }
-  const data = {name, players: players.map(p => PLAYER_KEYS.map(key => key === 'home' ? (p.home ? 1 : 0) : p[key]))};
+  const data = {name, updated: new Date().toISOString(), by: $('slateBy').value.trim() || 'jamestroupis', players: players.map(p => PLAYER_KEYS.map(key => key === 'home' ? (p.home ? 1 : 0) : p[key] ?? null))};
   download(JSON.stringify(data), 'slate.json', 'application/json');
   $('ownerStatus').textContent = 'Downloaded slate.json with ' + players.filter(p => p.projection !== '').length + ' projected players. Your current projections are its starting point.';
 };
