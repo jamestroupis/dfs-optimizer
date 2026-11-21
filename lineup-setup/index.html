@@ -1097,7 +1097,7 @@ function render() {
   if (problem) rows.push(tick(false, esc(problem)));
   else if (entries) {
     const contests = new Set(entries.map(entry => entry.contestId)).size, filled = entries.filter(hasLineup).length;
-    rows.push(tick(true, '<b>' + entries.length + ' entries</b> in ' + contests + ' contests from ' + esc(fileName) + (filled ? ' (' + filled + ' already have a lineup)' : '')));
+    rows.push(tick(true, '<b>' + entries.length + ' entries</b> in ' + contests + ' contests from ' + esc(fileName) + (filled ? ' (' + filled + ' already have a lineup and will be replaced)' : '')));
   } else rows.push(tick(null, 'Waiting for your DraftKings entries file'));
   rows.push(saved.length ? tick(true, '<b>' + saved.length + ' lineup' + (saved.length === 1 ? '' : 's') + '</b> from your Optimizer builds on this device') :
     tick(false, (all ? 'Your ' + all + ' saved lineups do not match this slate. ' : 'No lineups found from the Optimizer on this device. ') + '<a href="../">Build some in the Optimizer</a> first, then come back.'));
@@ -1142,7 +1142,7 @@ function buildDocument() {
     contests.get(entry.contestId).n++;
   }
   const fees = entries.reduce((sum, entry) => sum + feeOf(entry), 0);
-  const empty = entries.filter(entry => !hasLineup(entry)).length;
+  const filled = entries.filter(hasLineup).length;
   const stamp = slate.updated ? new Date(slate.updated).toISOString().slice(0, 16).replace('T', ' ') + ' UTC by ' + (slate.by || 'jamestroupis') : slate.source === 'sheet' ? 'time not recorded, by ' + (slate.by || 'jamestroupis') : 'unknown';
   const notes = $('notes').value.trim();
   const csv = rows => '```csv\n' + rows.map(csvLine).join('\n') + '\n```';
@@ -1151,18 +1151,20 @@ function buildDocument() {
   out.push('## 1. Your job', '',
     'You are setting DraftKings NFL Classic lineups for the person who gave you this document. It holds everything you need: the playbook to follow, their contests and entries, the lineups they built, and the player pool.',
     '',
-    '**Do this:** choose a lineup for every entry marked EMPTY in section 4, using the lineups in section 5, following the playbook in section 3. Then return a DraftKings upload file.',
+    '**Do this:** build the best portfolio you can for all ' + entries.length + ' entries in section 4, using the lineups in section 5 and following the playbook in section 3, and assign a lineup to every entry. ' + (filled ? filled + ' of the entries already hold a lineup on DraftKings. Replace them all. Those lineups have not been checked or optimized and are not approved choices under the playbook, so do not assume they are good and do not keep one because it is already there. ' : '') + 'Then return a DraftKings upload file.',
     '',
     '**Your answer must be:**',
-    '1. One CSV code block in exactly this format, one row per EMPTY entry, with DraftKings player IDs (numbers only) in the nine player columns:',
+    '1. One CSV code block in exactly this format, one row per entry, with DraftKings player IDs (numbers only) in the nine player columns:',
     '',
     '```csv', 'Entry ID,Contest Name,Contest ID,Entry Fee,QB,RB,RB,WR,WR,WR,TE,FLEX,DST', '```',
     '',
     '2. Then a short report: which lineup label went to which contests and why, a "Wins if:" line for each distinct tournament lineup, the share of tournament entries for your ten most-used players, what you could not verify, and a verdict of GO, GO WITH WARNINGS or NO-GO.',
     '',
     '**Rules you may not break:**',
-    '- Copy each Entry ID, Contest Name, Contest ID and Entry Fee exactly from section 4. Never invent an entry. Leave KEEP entries out.',
-    '- Give a row for every EMPTY entry (' + empty + ' of them). Do not stop early or write "and so on". Continue in a second CSV block if needed, then state how many rows you returned.',
+    '- Copy each Entry ID, Contest Name, Contest ID and Entry Fee exactly from section 4. Never invent an entry.',
+    '- Give a row for every entry (' + entries.length + ' of them), whether its status is EMPTY or REPLACE. Do not stop early or write "and so on". Continue in a second CSV block if needed, then state how many rows you returned.',
+    '- Choose each entry\'s lineup on merit across the whole portfolio: contest type, field size, entry limit, exposure and the playbook. An entry may end up with the lineup it has now only if that lineup is among those in section 5 or passes the same checks, and is still the best choice.',
+    '- If a lineup already on DraftKings shows a player marked LOCKED, that game has started and the player cannot be changed: keep that player in the same slot, build the rest around them, and say which entries this affected.',
     '- Use the lineups in section 5 by copying their IDs in the slot order shown. Build a new lineup only when none fits, and then check it yourself: 1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX (RB, WR or TE), 1 DST, nine different players from at least two games, total salary at or under $50,000, latest kickoff in FLEX where the roster allows.',
     '- Use only players in section 6, never one marked OUT. Treat LOCK and Max % as the owner\'s instructions.',
     '- Put one best cash lineup in every cash entry (double-ups, 50/50s, head-to-heads). Do not repeat a lineup inside the same tournament contest.',
@@ -1174,9 +1176,9 @@ function buildDocument() {
   out.push('## 4. Contests and entries', '', 'Type is read from the contest name. "Field at least" is prize pool divided by entry fee, a rough floor; blank means unknown.', '',
     csv([['Contest ID', 'Contest Name', 'Type', 'Entry Fee', 'Your entries', 'Entry limit', 'Field at least'],
       ...[...contests.values()].sort((a, b) => b.fee - a.fee).map(c => [c.id, c.name, contestKind(c.name), entries.find(e => e.contestId === c.id).fee, c.n, contestLimit(c.name) ?? '', fieldFloor(c.name, c.fee) ?? ''])]), '',
-    'EMPTY needs a lineup. KEEP already has one on DraftKings; leave it alone.', '',
+    'Every entry gets a lineup from you. EMPTY has none yet. REPLACE holds a lineup on DraftKings now, shown for reference only; it is not a recommendation.', '',
     csv([['Entry ID', 'Contest Name', 'Contest ID', 'Entry Fee', 'Status', 'Lineup already on DraftKings'],
-      ...entries.map(entry => [entry.id, entry.contest, entry.contestId, entry.fee, hasLineup(entry) ? 'KEEP' : 'EMPTY', hasLineup(entry) ? entry.current.filter(Boolean).join(' | ') : ''])]), '');
+      ...entries.map(entry => [entry.id, entry.contest, entry.contestId, entry.fee, hasLineup(entry) ? 'REPLACE' : 'EMPTY', hasLineup(entry) ? entry.current.filter(Boolean).join(' | ') : ''])]), '');
   out.push('## 5. Lineups the owner built', '', saved.length ? 'The owner\'s best lineups from the Optimizer, highest projection first. "Built as" is the mode they were built in. Floor and ceiling are the nine player values added up, not odds. The last column is the nine DraftKings IDs in upload order (QB, RB, RB, WR, WR, WR, TE, FLEX, DST).' : 'None were found. Build lineups from the player pool, checking each one against the roster and salary rules.', '');
   if (saved.length) out.push(csv([['Label', 'Built as', 'Proj', 'Floor', 'Ceiling', 'Salary', 'Own sum %', 'Shape', 'Flags', ...SLOTS, 'IDs in upload order'],
     ...saved.map(c => [c.label, c.kind === 'cash' ? 'cash' : 'tournament', c.f.projection.toFixed(1), c.f.floor.toFixed(1), c.f.ceiling.toFixed(1), c.f.salary, c.f.own.toFixed(0), c.f.shape, c.f.flags.join('; '), ...c.f.line.map(p => p.name), c.ids.join(',')])]), '');
@@ -1185,12 +1187,12 @@ function buildDocument() {
     csv([['ID', 'Name', 'Pos', 'Team', 'Opp', 'Kickoff', 'Salary', 'Proj', 'Floor', 'Ceiling', 'Range', 'Own %', 'Edited', 'Status', 'Max %'],
       ...pool.map(p => { const b = base.get(p.id); return [p.id, p.name, p.pos, p.team, (p.home ? 'vs ' : '@ ') + p.opp, p.when, p.salary, p.projection, floorOf(p), ceilOf(p), p.floor != null || p.ceiling != null ? 'SET' : 'DEFAULT', p.ownership ?? '',
         b && isEdited(p, b) ? 'EDITED' : '', p.action === 'lock' ? 'LOCK' : p.action === 'out' ? 'OUT' : '', p.cap ?? '']; })]), '');
-  return {text: out.join('\n'), lineups: saved.length, empty};
+  return {text: out.join('\n'), lineups: saved.length, fill: entries.length, replaced: filled};
 }
 $('make').onclick = () => {
   const doc = buildDocument();
   download(doc.text, 'dfs-ai-document.md', 'text/markdown');
-  $('status').textContent = 'Downloaded dfs-ai-document.md: ' + doc.empty + ' entries to fill, ' + doc.lineups + ' lineups, ' + (playbook ? 'playbook included.' : 'no playbook.');
+  $('status').textContent = 'Downloaded dfs-ai-document.md: ' + doc.fill + ' entries to fill' + (doc.replaced ? ' (' + doc.replaced + ' replacing a lineup already on DraftKings)' : '') + ', ' + doc.lineups + ' lineups, ' + (playbook ? 'playbook included.' : 'no playbook.');
 };
 $('copyDoc').onclick = () => copy(buildDocument().text, 'Document');
 window.addEventListener('focus', render);
