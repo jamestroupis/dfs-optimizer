@@ -256,6 +256,8 @@ td.sum{white-space:normal;min-width:260px}
 .ticks li.wait::before{content:"\2022";color:var(--muted)}
 .ticks li.no{color:var(--danger)}
 .ticks li.no a{color:inherit}
+.steps{margin:0 0 16px;padding-left:22px;display:grid;gap:6px}
+.steps li{padding-left:4px}
 .modes{border:1px solid var(--line);border-radius:10px;padding:10px 14px 12px;margin:14px 0 0;display:grid;gap:10px}
 .modes legend{font-weight:600;font-size:14px;padding:0 6px}
 .modes label{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:start;cursor:pointer}
@@ -277,7 +279,7 @@ td.sum{white-space:normal;min-width:260px}
   <div>
     <div class="brand">NFL · DraftKings Classic</div>
     <h1>Critique My Lineups</h1>
-    <p class="slate">Upload your DraftKings lineups. Get one document that has an AI audit them against the playbook, critique them, and rebuild the portfolio.</p>
+    <p class="slate">Upload your DraftKings lineups. Get an AI's honest read on what to change before lock.</p>
     <p class="slate" id="slateLine"></p>
     <p class="slate small" id="sourceLine" style="max-width:80ch"></p>
     <nav class="nav" aria-label="Tools"><a href="../">Optimizer</a><a href="../lineup-setup/">Lineup Setup</a><a href="./" aria-current="page">Critique</a></nav>
@@ -287,6 +289,12 @@ td.sum{white-space:normal;min-width:260px}
 
 <div class="wrap" id="app" style="max-width:760px">
   <section class="panel step" id="box">
+    <ol class="steps">
+      <li><b>Add your entries file.</b> On DraftKings: Lineups, then Edit entries, then download the CSV. Drop it in the box below.</li>
+      <li><b>Download your critique request.</b> One file with your lineups, the playbook, and this week's projections and ownership.</li>
+      <li><b>Give it to an AI.</b> Open Claude or ChatGPT, start a new chat, attach the file and send: <i>Follow the instructions in this file.</i></li>
+      <li><b>Read the verdict.</b> You get what to change, what to keep, and an upload file for DraftKings if you agree with it.</li>
+    </ol>
     <label class="drop" id="drop" for="dkFile">
       <strong id="dropTitle">Add your DraftKings entries file</strong>
       <span id="dropHint">Click to choose it, or drag it here. On DraftKings: Lineups, then Edit entries, then download the CSV.</span>
@@ -296,8 +304,9 @@ td.sum{white-space:normal;min-width:260px}
     <fieldset class="modes">
       <legend>Which lineups?</legend>
       <label><input type="checkbox" id="useEntries" checked><b>Lineups in my DraftKings contests</b><span id="entriesHint"></span></label>
-      <label><input type="checkbox" id="useSaved" checked><b>Lineups I built in the Optimizer</b><span id="savedHint"></span>
-        <span>Critique the best <input id="topN" type="number" min="1" max="150" step="1" value="20" style="width:64px" aria-label="How many of each type"> of each type, cash and tournament.</span></label>
+      <label><input type="checkbox" id="useSaved"><b>Also offer lineups I built in the Optimizer as replacements</b><span id="savedHint"></span>
+        <span>Include the best <input id="topN" type="number" min="1" max="150" step="1" value="20" style="width:64px" aria-label="How many of each type"> of each type, cash and tournament.</span></label>
+      <label><input type="checkbox" id="ownerMode"><b>Also critique the playbook</b><span>Adds a section proposing changes to the playbook's rules. Leave this off unless you maintain the playbook.</span></label>
     </fieldset>
     <label class="small" for="notes" style="display:block;margin-top:14px;font-weight:600">What do you want the critique to focus on? <span class="muted" style="font-weight:400">Optional</span></label>
     <textarea id="notes" rows="2" placeholder="For example: am I too heavy on Dak, and are my cheap receivers good enough?"></textarea>
@@ -307,18 +316,15 @@ td.sum{white-space:normal;min-width:260px}
       <button class="btn" id="copyDoc" type="button" disabled>Copy it instead</button>
       <p class="status" id="status" role="status"></p>
     </div>
-    <p class="small muted" style="margin-top:6px">Then start a chat with an AI, attach the document, and say "follow the instructions in this file." It will send back its findings, a decision on every entry, revised lineups and a DraftKings upload file.</p>
   </section>
 </div>
 
 <section class="about" style="max-width:760px">
-  <h2>What you get back</h2>
+  <h2>Good to know</h2>
   <dl>
-    <dt>The biggest findings</dt><dd>What is wrong, what is right, and which lineups are in the wrong contest. Honest both ways.</dd>
-    <dt>A decision on every entry</dt><dd>Keep, revise, replace or reassign, with complete revised lineups and a reason for each change.</dd>
-    <dt>Before and after exposure</dt><dd>How much rides on each player, quarterback stack and game, by contest type and across the portfolio.</dd>
-    <dt>Edits to the playbook</dt><dd>Where a rule, not a lineup, caused the problem, the AI proposes replacement wording.</dd>
-    <dt>What goes in the document</dt><dd>Your contests, entries and lineups, the playbook, this week's projections and ownership, and anything you type in the box. Nothing is uploaded; it stays on this device until you hand the document to an AI.</dd>
+    <dt>It is free and nothing is uploaded</dt><dd>The page runs in your browser. Your entries file only goes to the AI you choose to give the document to.</dd>
+    <dt>It covers the slate shown at the top of this page</dt><dd>Entries from a different slate cannot be scored, because the projections here would not match.</dd>
+    <dt>It is a second opinion, not a guarantee</dt><dd>The AI works from point projections, ownership estimates and a playbook. It does not know win odds and it can be wrong. Check injuries and contest rules yourself before lock.</dd>
   </dl>
 </section>
 <div class="toast" id="toast" role="status"></div>
@@ -1155,14 +1161,14 @@ function render() {
     const filled = entries.filter(hasLineup).length;
     rows.push(tick(filled > 0, filled ? '<b>' + filled + ' filled entries</b> from ' + esc(fileName) : 'None of the ' + entries.length + ' entries in ' + esc(fileName) + ' has a lineup yet'));
   } else rows.push(tick(null, 'Waiting for your DraftKings entries file'));
-  rows.push(saved.length ? tick(true, '<b>' + saved.length + ' saved lineup' + (saved.length === 1 ? '' : 's') + '</b> from the Optimizer on this device can be critiqued too') :
+  rows.push(saved.length ? tick(true, '<b>' + saved.length + ' saved lineup' + (saved.length === 1 ? '' : 's') + '</b> from the Optimizer on this device can be offered as replacements') :
     tick(null, (all ? 'Your ' + all + ' saved Optimizer lineups do not match this slate.' : 'No saved Optimizer lineups on this device. That is fine; the entries file is enough.')));
   rows.push(tick(!!playbook, playbook ? 'Playbook, projections and ownership included' : 'Projections and ownership included (no playbook found)'));
   $('ticks').innerHTML = rows.join('');
   $('useSaved').disabled = !saved.length;
   $('useEntries').disabled = !(entries && !problem && entries.some(hasLineup));
   $('savedHint').textContent = saved.length ? saved.length + ' on this device for this slate.' : 'None on this device for this slate.';
-  $('entriesHint').textContent = $('useEntries').disabled ? 'Add your entries file above to include them.' : 'Each different lineup is critiqued once, with the contests it is in.';
+  $('entriesHint').textContent = $('useEntries').disabled ? 'Add your entries file above.' : 'Each different lineup is reviewed once, with the contests it is in.';
   $('drop').classList.toggle('done', !!entries && !problem);
   $('dropTitle').textContent = entries && !problem ? 'Entries loaded. Click to choose a different file.' : 'Add your DraftKings entries file';
   $('dropHint').textContent = entries && !problem ? fileName : 'Click to choose it, or drag it here. On DraftKings: Lineups, then Edit entries, then download the CSV.';
@@ -1194,7 +1200,7 @@ const drop = $('drop');
 for (const type of ['dragenter', 'dragover']) drop.addEventListener(type, event => { event.preventDefault(); drop.classList.add('over'); });
 for (const type of ['dragleave', 'drop']) drop.addEventListener(type, event => { event.preventDefault(); drop.classList.remove('over'); });
 drop.addEventListener('drop', event => take(event.dataTransfer.files[0]));
-for (const id of ['useSaved', 'useEntries', 'topN']) $(id).onchange = () => { $('status').textContent = ''; render(); };
+for (const id of ['useSaved', 'useEntries', 'topN', 'ownerMode']) $(id).onchange = () => { $('status').textContent = ''; render(); };
 
 function fieldFloor(name, fee) {
   if (!(fee > 0) || contestKind(name) !== 'Tournament') return null;
@@ -1258,38 +1264,57 @@ function buildDocument() {
   const out = [];
   out.push('# NFL DFS lineup critique: ' + slate.name, '', 'Made ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC at optimizer.jamestroupis.com. DraftKings NFL Classic.', '');
   out.push('**To the AI reading this:** this document is the whole request. Whatever the message that came with it says ("please critique", "take a look", or nothing at all), carry out section 1 now, in full, using everything below. Do not ask what the owner wants or which part to do. Ask a question only if something this document says it contains is missing.', '');
+  const owner = $('ownerMode').checked;
+  // CRITIQUE_BRIEF: [title, intro, steps 1 to 6, the owner's own return order, the test]. Step 5 (critique the playbook) is for the site owner.
+  const method = CRITIQUE_BRIEF.filter((_, i) => i >= 2 && i <= 7 && (owner || i !== 6));
+  const n = filledEntries.length;
   out.push('## 1. Your job', '',
-    'You are reviewing DraftKings NFL Classic lineups for the person who gave you this document. It holds their directions, the playbook, their contests and entries, the lineups, the exposure they carry now, and the player pool with projections and ownership.', '',
-    '**The owner\'s instructions, in their words:**', '', ...CRITIQUE_BRIEF.flatMap(p => [p, '']),
-    '**How this document maps to those instructions:**',
-    ...(filledEntries.length ? [
-      '- The submitted portfolio is the ' + filledEntries.length + ' filled entries in section 4, which hold ' + onDk.length + ' different lineups, labelled C1, C2 and so on in section 5. Total entry fees are $' + fees.toFixed(2) + '.',
-      '- Contest details are in section 4. Type and entry limit are read from the contest name, and "Field at least" is prize pool divided by entry fee, a rough floor. Payout structure is not supplied: treat it as an input limitation, say what you assumed, and say how the real payout table could change the call.']
-      : ['- No entries file was supplied, so there are no contests, entry IDs or entry fees. Judge the lineups for the contest type they were built for, skip the entry-by-entry decisions and the export, and say that contest fit could not be checked.']),
-    ...(built.length ? ['- Lineups labelled S (' + built.length + ' of them) were built in the owner\'s Optimizer and are not entered anywhere. Critique them too, and use them as candidates when you rebuild.'] : []),
-    '- The playbook in section 3 is the set of rules that produced these lineups. It is under review as well: instruction 5 applies to it.',
-    '- Lineup ceilings in section 5 are the nine player ceilings added up. That is a proxy, not a modeled lineup ceiling.',
-    '- Ownership in section 7 is the owner\'s estimate. Where a player has none, say so. Any duplication figure you give is your estimate and must be labelled as one.',
-    ...(filledEntries.length ? ['- The "before" exposure is already computed in section 6. Compute "after" the same way, with a code tool: entries holding the item, divided by filled entries in the group; dollars are the entry fees of those entries.'] : []),
-    '- The directions in section 2 come first. Any player named there should be dealt with early in your findings.',
-    '',
-    '**Format for the parts that must be exact:**',
-    ...(filledEntries.length ? [
-      '- Entry-by-entry decisions: one CSV code block with a row for every filled entry (all ' + filledEntries.length + '), columns Entry ID, Contest Name, Contest ID, Entry Fee, Decision, Old lineup, New lineup. Decision is Keep, Revise, Replace or Reassign. Use the labels in this document, and N1, N2 and so on for lineups you build.',
-      '- Revised lineups: label, contest assignment, the nine players in slot order, salary, projection and the one-sentence rationale.',
-      '- DraftKings-ready export: the data here supports one. Give one CSV code block in exactly this format, with a row for every entry whose decision is Revise, Replace or Reassign and no other entries, using DraftKings player IDs (numbers only) in the nine player columns:',
+    'You are reviewing DraftKings NFL Classic lineups for the player who gave you this document, before the games lock. They want to know what to change. ' +
+    (owner ? 'This player also owns the playbook and the tool that built these lineups, so the last part of your answer is for them in that role.' : 'Write to the player. They did not write the playbook or build the tool that made this document, and they cannot change either, so do not tell them how to fix those.'), '',
+    '**Your answer, in this order. The first five parts are what the player reads; keep them short.**', '',
+    '**1. The verdict.** Five sentences at most. What is most wrong with these lineups, what is right, and how many of the ' + (n ? n + ' entries ($' + fees.toFixed(2) + ' in fees)' : list.length + ' lineups') + ' you would change.', '',
+    '**2. What to change.** A numbered list, most important first, seven items at most. Group entries that get the same change into one item. Each item is three short lines:',
+    '   - Which entries: the contest and how many entries, or the lineup label.',
+    '   - The change: players out and players in, or the lineup that replaces it.',
+    '   - Why: what the change buys in that contest and what it gives up, with the projection and salary difference.', '',
+    '**3. What to leave alone.** Three bullets at most: what is good here and why it should stay.', '',
+    ...(n ? ['**4. Your upload file.** One CSV code block in exactly this format, with a row for every entry you changed in part 2 and no other entries, using DraftKings player IDs (numbers only) in the nine player columns. Say in one line how many rows it holds.',
       '', '```csv', 'Entry ID,Contest Name,Contest ID,Entry Fee,QB,RB,RB,WR,WR,WR,TE,FLEX,DST', '```', '']
-      : ['- Revised lineups: label, the nine players in slot order, salary, projection and the one-sentence rationale.', '']),
+      : ['**4. The revised lineups.** Each changed lineup in full: label, the nine players in slot order, salary and projection.', '']),
+    '**5. Check before lock.** Five bullets at most, in plain words: what the player must confirm themselves, such as a player\'s injury status or a contest\'s payout rules, and which change in part 2 depends on it.', '',
+    '**6. Backup.** Tables and one line per item, for the player who wants the detail:',
+    ...(n ? ['   - Every entry: one CSV code block with a row for each of the ' + n + ' filled entries, columns Entry ID, Contest Name, Contest ID, Entry Fee, Decision, Old lineup, New lineup. Decision is Keep, Revise, Replace or Reassign. Use the labels in this document, and N1, N2 and so on for lineups you build.'] : []),
+    '   - Every revised lineup in full: label, ' + (n ? 'contest, ' : '') + 'the nine players in slot order, salary, projection, and one sentence on why.',
+    '   - For each distinct tournament lineup you kept or built: one line on what has to happen for it to win.',
+    ...(n ? ['   - Exposure before and after, by contest type and across the portfolio: players, QB stacks and games, with entries, percentages and dollars. "Before" is in section 6.'] : []),
+    '',
+    ...(owner ? ['**7. For the owner of the playbook.** Each finding that is a rule problem and not a lineup problem: quote the rule, show the evidence in these lineups, give replacement wording, and say which contests it applies to. Note any data this document should have carried and did not.', ''] : []),
+    '**How to write it:**',
+    '- Make the call. Every item in part 2 is a change the player can make now with what is in this document. Do not answer "compare", "consider" or "verify first". If a payout rule or a player\'s status is unknown, make your best call anyway and mark it "(provisional: reason)".',
+    '- Lead with money. Order part 2 by the entry fees at stake. A contest with many entries at a few cents each gets one item, however many entries it holds.',
+    (owner ? '- Keep parts 1 to 5 about the lineups. Everything about the playbook, the tool or missing data goes in part 7.' : '- Do not review the tool. Never mention the optimizer, the playbook\'s rule numbers, the export, this document or its missing fields. If a gap in the data matters to the player, say what to check in part 5, in plain words.'),
+    '- Parts 1, 2, 3 and 5 together should fit on one screen: about 400 words. Put everything longer in part 6.',
+    '- Be direct and be fair. Be hard on what deserves it and say plainly what is good. Do not flatter, and do not invent a weakness to seem thorough.', '',
+    '**How to judge the lineups.** This is the method. It governs how you decide, not how much you write.', '', ...method.map(p => '- ' + p.replace(/^\d+\.\s*/, '')), '', CRITIQUE_BRIEF[9], '',
+    '**What is in this document:**',
+    ...(n ? [
+      '- The portfolio is the ' + n + ' filled entries in section 4, which hold ' + onDk.length + ' different lineups, labelled C1, C2 and so on in section 5.',
+      '- Contest type and entry limit are read from the contest name, and "Field at least" is prize pool divided by entry fee, a rough floor. Payout tables and advancement rules are not included.']
+      : ['- No entries file was supplied, so there are no contests or entry IDs. Judge each lineup for the contest type it was built for.']),
+    ...(built.length ? ['- Lineups labelled S (' + built.length + ' of them) are extra lineups the player built and has not entered. Use them as candidates when a change is needed. Do not critique them as a group.'] : []),
+    '- Lineup floor and ceiling in section 5 are the nine player values added up. That is a rough proxy: player outcomes move together.',
+    '- Ownership in section 7 is an estimate. Any duplication figure you give is your own estimate and must be labelled as one.',
+    '- Section 7 has no injury or availability data. The Setting column holds only the player\'s own LOCK and OUT choices; blank means no choice was made, not that the player is healthy.',
+    '- The player\'s directions in section 2 come first.', '',
     '**Rules you may not break:**',
-    '- Be direct and be fair. Be hard on what deserves it and say plainly what is good where a lineup has earned it. Do not flatter a lineup to soften a criticism, and do not invent a weakness to seem thorough.',
-    ...(filledEntries.length ? ['- Copy each Entry ID, Contest Name, Contest ID and Entry Fee exactly from section 4. Never invent an entry. Give every filled entry a row; do not stop early or write "and so on".'] : []),
-    '- Every lineup you return must use players from section 7, never one marked OUT, and must be legal: 1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX (RB, WR or TE), 1 DST, nine different players from at least two games, total salary at or under $50,000, latest kickoff in FLEX where the roster allows. Treat LOCK and Max % as the owner\'s instructions.',
+    ...(n ? ['- Copy each Entry ID, Contest Name, Contest ID and Entry Fee exactly from section 4. Never invent an entry. In the part 6 table, give every filled entry a row; do not stop early or write "and so on".'] : []),
+    '- Every lineup you return must use players from section 7, never one set to OUT, and must be legal: 1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX (RB, WR or TE), 1 DST, nine different players from at least two games, total salary at or under $50,000, latest kickoff in FLEX where the roster allows. Treat LOCK and Max % as the player\'s instructions.',
     '- If a lineup shows a locked player, that game has started and the player cannot be changed. Keep that player in the same slot and build around them.',
-    '- Bring your own knowledge of football, roster construction and contest strategy; that is wanted. For anything specific to this week (injuries, depth charts, weather, late news), look it up in this session and say where you found it, and do not rely on memory, which may be out of date. If you cannot check news, say so and do not call availability verified.',
+    '- Bring your own knowledge of football, roster construction and contest strategy; that is wanted. For anything specific to this week (injuries, depth charts, weather, late news, changed kickoff times), look it up in this session and say where you found it, and do not rely on memory, which may be out of date. If you cannot check news, say so in part 5.',
     '- Do not do arithmetic from memory; use the numbers here, and a code tool if you have one. Do not give cash odds or win odds; nothing here supports them.',
     '- Do not suggest adding entries or chasing losses. Never say the lineups were uploaded; you cannot know that.', '');
-  out.push('## 2. Directions from the owner', '', notes ? 'These come first.\n\n' + notes : 'None given.', '');
-  out.push('## 3. Playbook', '', playbook ? 'These are the rules the owner builds by. Judge the lineups against them, and judge the rules themselves under instruction 5: quote the rule you want changed and give the replacement wording.\n\n' + playbook : 'No playbook is included, so instruction 5 cannot be carried out. Say so.', '');
+  out.push('## 2. Directions from the player', '', notes ? 'These come first.\n\n' + notes : 'None given.', '');
+  out.push('## 3. Playbook', '', playbook ? (owner ? 'These are the rules these lineups were built by. Judge the lineups against them, and judge the rules themselves in part 7.' : 'Use this playbook as your standard for judging the lineups. It is background for you: do not quote its rule numbers to the player or propose changes to it.') + '\n\n' + playbook : 'No playbook is included.', '');
   out.push('## 4. Contests and entries', '');
   if (!filledEntries.length) out.push('No entries file was supplied.', '');
   else out.push('Type is read from the contest name. "Field at least" is prize pool divided by entry fee, a rough floor; blank means unknown. Payout structure is not in the entries file.', '',
@@ -1326,19 +1351,19 @@ function buildDocument() {
       csv([['Player', 'Lineups', '% of lineups'], ...[...tally.entries()].sort((a, b) => b[1] - a[1]).map(([key, n]) => [key, n, (n / list.length * 100).toFixed(1)])]), '');
   }
   const pool = players.filter(p => Number(p.projection) > 0 || p.action).sort((a, b) => POSITIONS.indexOf(a.pos) - POSITIONS.indexOf(b.pos) || Number(b.projection) - Number(a.projection));
-  out.push('## 7. Player pool', '', 'Salaries, IDs, teams and kickoffs are from DraftKings. Projections and ownership are the site defaults (last updated ' + stamp + ') plus the owner\'s edits, marked EDITED. ' + (slate.note || '') + ' Floor and ceiling marked SET come from the site or the owner; any marked DEFAULT are placeholders at 50% below and above the projection. This is point projections only (playbook model level D).', '',
-    csv([['ID', 'Name', 'Pos', 'Team', 'Opp', 'Game', 'Kickoff', 'Salary', 'Proj', 'Floor', 'Ceiling', 'Range', 'Own %', 'Edited', 'Status', 'Max %'],
+  out.push('## 7. Player pool', '', 'Salaries, IDs, teams and kickoffs are from DraftKings. Projections and ownership are the site defaults (last updated ' + stamp + ') plus the owner\'s edits, marked EDITED. ' + (slate.note || '') + ' Floor and ceiling marked SET come from the site or the owner; any marked DEFAULT are placeholders at 50% below and above the projection. This is point projections only (playbook model level D). There is no injury or availability data here: "Setting" is the player\'s own LOCK or OUT choice, and blank means none.', '',
+    csv([['ID', 'Name', 'Pos', 'Team', 'Opp', 'Game', 'Kickoff', 'Salary', 'Proj', 'Floor', 'Ceiling', 'Range', 'Own %', 'Edited', 'Setting', 'Max %'],
       ...pool.map(p => { const b = base.get(p.id); return [p.id, p.name, p.pos, p.team, (p.home ? 'vs ' : '@ ') + p.opp, p.game, p.when, p.salary, p.projection, floorOf(p), ceilOf(p), p.floor != null || p.ceiling != null ? 'SET' : 'DEFAULT', p.ownership ?? '',
         b && isEdited(p, b) ? 'EDITED' : '', p.action === 'lock' ? 'LOCK' : p.action === 'out' ? 'OUT' : '', p.cap ?? '']; })]), '');
   return {text: out.join('\n'), total: list.length, onDk: onDk.length, built: built.length, entries: filledEntries.length};
 }
-const docStatus = (doc, verb) => verb + ': ' + (doc.entries ? doc.entries + ' entries holding ' + doc.onDk + (doc.onDk === 1 ? ' lineup' : ' lineups') : 'no entries') + (doc.built ? ', plus ' + doc.built + ' from the Optimizer' : '') + ', ' + (playbook ? 'playbook included.' : 'no playbook.');
+const holds = doc => (doc.entries ? doc.entries + ' entries holding ' + doc.onDk + (doc.onDk === 1 ? ' lineup' : ' lineups') : doc.built + ' lineups') + (doc.entries && doc.built ? ', plus ' + doc.built + ' Optimizer lineups as replacements' : '');
 $('make').onclick = () => {
   const doc = buildDocument();
   download(doc.text, 'dfs-lineup-critique.md', 'text/markdown');
-  $('status').textContent = docStatus(doc, 'Downloaded dfs-lineup-critique.md');
+  $('status').textContent = 'Downloaded dfs-lineup-critique.md (' + holds(doc) + '). Now open Claude or ChatGPT, start a new chat, attach the file and send "Follow the instructions in this file."';
 };
-$('copyDoc').onclick = () => { const doc = buildDocument(); copy(doc.text, 'Document'); $('status').textContent = docStatus(doc, 'Copied'); };
+$('copyDoc').onclick = () => { const doc = buildDocument(); copy(doc.text, 'Document'); $('status').textContent = 'Copied (' + holds(doc) + '). Now open Claude or ChatGPT, start a new chat, paste it in and send.'; };
 window.addEventListener('focus', render);
 render();
 </script>
