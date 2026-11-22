@@ -296,7 +296,7 @@ td.sum{white-space:normal;min-width:260px}
 <div class="wrap" id="app" style="max-width:760px">
   <section class="panel step" id="box">
     <ol class="steps">
-      <li><b>Upload your DraftKings entries file.</b> On DraftKings: Lineups, then Edit entries, then download the CSV.</li>
+      <li><b>Upload your DraftKings entries file.</b> On DraftKings: Lineups, then Edit entries, then download the CSV. A lineup upload file works too.</li>
       <li><b>Send the file we give you to an AI.</b> It downloads by itself. Attach it to a new chat in Claude or ChatGPT and send: <i>Follow the instructions in this file.</i></li>
     </ol>
     <label class="drop" id="drop" for="dkFile">
@@ -1240,16 +1240,46 @@ function makeFile() {
   render();
 }
 
+// A DraftKings upload file has the entries header and lineups but no player list.
+function readEntriesOnly(source) {
+  const rows = parseCsv(source);
+  const at = rows.findIndex(row => ENTRY_HEAD.every((key, i) => row[i] === key) && SLOTS.every((slot, i) => row[4 + i] === slot));
+  if (at < 0) return null;
+  const list = [], seen = new Set();
+  for (const row of rows.slice(at + 1)) {
+    if (!/^\d+$/.test(row[0] || '') || seen.has(row[0])) continue;
+    seen.add(row[0]);
+    list.push({id: row[0], contest: row[1] || '', contestId: row[2] || '', fee: row[3] || '', current: SLOTS.map((_, i) => row[4 + i] || '')});
+  }
+  return list.length ? list : null;
+}
+// Says what the wrong file probably is, for someone who has never done this before.
+function explainFile(text, name) {
+  if (/\.md$/i.test(name) || /^# NFL DFS/.test(text)) return 'That is a file this site made for the AI, not your DraftKings entries. Upload the CSV from DraftKings: Lineups, then Edit entries, then download.';
+  if (/\.(xlsx?|pdf|docx?|png|jpe?g)$/i.test(name)) return 'That is not a CSV file. Upload the CSV from DraftKings: Lineups, then Edit entries, then download.';
+  return 'That file has no DraftKings entries in it. Upload the CSV from DraftKings: Lineups, then Edit entries, then download. A DraftKings upload file with your lineups works too.';
+}
 async function take(file) {
   if (!file) return;
   problem = '';
   fileName = file.name;
   try {
-    const dk = readDraftKings(await file.text());
-    if (!dk.entries) throw Error('That file has players but no contest entries. Use the CSV from Lineups, Edit entries on DraftKings (its name starts with DKEntries).');
-    const carried = adoptDraftKings(dk);
-    entries = dk.entries;
-    if (carried.fresh) problem = 'Those entries are for a different slate than the one on this site (' + slate.name + '), so they cannot be scored with this week\'s projections.';
+    const text = await file.text();
+    const wrongSlate = 'Those entries are for a different slate than the one on this site (' + slate.name + '), so they cannot be scored with this week\'s projections.';
+    let dk = null;
+    try { dk = readDraftKings(text); } catch (error) { if (!readEntriesOnly(text)) throw Error(explainFile(text, file.name)); }
+    if (dk) {
+      if (!dk.entries) throw Error('That file has players but no contest entries. Use the CSV from Lineups, Edit entries on DraftKings (its name starts with DKEntries).');
+      const carried = adoptDraftKings(dk);
+      entries = dk.entries;
+      if (carried.fresh) problem = wrongSlate;
+    } else {
+      // A DraftKings upload file: entries and lineups, but no player list. The players come from this site's slate.
+      entries = readEntriesOnly(text);
+      const ids = entries.flatMap(entry => entry.current.map(cellId)).filter(Boolean);
+      if (!ids.length) throw Error('That file has entries but no lineups in them, so there is nothing to critique.');
+      if (ids.filter(id => byId.has(id)).length < ids.length / 2) problem = wrongSlate;
+    }
   } catch (error) {
     entries = null;
     problem = error && error.message ? error.message : 'That file could not be read. Make sure it is the CSV from DraftKings.';
