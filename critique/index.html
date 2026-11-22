@@ -256,6 +256,9 @@ td.sum{white-space:normal;min-width:260px}
 .ticks li.wait::before{content:"\2022";color:var(--muted)}
 .ticks li.no{color:var(--danger)}
 .ticks li.no a{color:inherit}
+.ready{border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:14px;margin-top:14px}
+.ready .bar{display:flex;flex-wrap:wrap;gap:8px}
+.ready a.btn{text-decoration:none}
 .flexbox{border:1px solid var(--mark);background:var(--mark-soft);border-radius:10px;padding:12px 14px;margin-top:14px}
 .flexbox ul{margin:8px 0 0;padding-left:20px;display:grid;gap:4px}
 .flexbox summary{cursor:pointer}
@@ -293,24 +296,26 @@ td.sum{white-space:normal;min-width:260px}
 <div class="wrap" id="app" style="max-width:760px">
   <section class="panel step" id="box">
     <ol class="steps">
-      <li><b>Add your entries file.</b> On DraftKings: Lineups, then Edit entries, then download the CSV. Drop it in the box below.</li>
-      <li><b>Download your critique request.</b> One file with your lineups, the playbook, and this week's projections and ownership.</li>
-      <li><b>Give it to an AI.</b> Open Claude or ChatGPT, start a new chat, attach the file and send: <i>Follow the instructions in this file.</i></li>
-      <li><b>Read the verdict.</b> You get what to change, what to keep, and an upload file for DraftKings if you agree with it.</li>
+      <li><b>Upload your DraftKings entries file.</b> On DraftKings: Lineups, then Edit entries, then download the CSV.</li>
+      <li><b>Send the file we give you to an AI.</b> It downloads by itself. Attach it to a new chat in Claude or ChatGPT and send: <i>Follow the instructions in this file.</i></li>
     </ol>
     <label class="drop" id="drop" for="dkFile">
-      <strong id="dropTitle">Add your DraftKings entries file</strong>
-      <span id="dropHint">Click to choose it, or drag it here. On DraftKings: Lineups, then Edit entries, then download the CSV.</span>
+      <strong id="dropTitle">Upload your DraftKings entries file</strong>
+      <span id="dropHint">Click to choose it, or drag it here.</span>
     </label>
     <input class="vh" id="dkFile" type="file">
     <ul class="ticks" id="ticks"></ul>
-    <fieldset class="modes">
-      <legend>Which lineups?</legend>
-      <label><input type="checkbox" id="useEntries" checked><b>Lineups in my DraftKings contests</b><span id="entriesHint"></span></label>
-      <label><input type="checkbox" id="useSaved"><b>Also offer lineups I built in the Optimizer as replacements</b><span id="savedHint"></span>
-        <span>Include the best <input id="topN" type="number" min="1" max="150" step="1" value="20" style="width:64px" aria-label="How many of each type"> of each type, cash and tournament.</span></label>
-      <label><input type="checkbox" id="ownerMode"><b>Also critique the playbook</b><span>Adds a section proposing changes to the playbook's rules. Leave this off unless you maintain the playbook.</span></label>
-    </fieldset>
+    <div class="ready" id="ready" hidden>
+      <b id="readyTitle">Your critique file is ready</b>
+      <p style="margin:6px 0 10px">Open a new chat, attach <b>dfs-lineup-critique.md</b> from your downloads, and send: <i>Follow the instructions in this file.</i></p>
+      <div class="bar">
+        <a class="btn primary" href="https://claude.ai/new" target="_blank" rel="noopener">Open Claude</a>
+        <a class="btn primary" href="https://chatgpt.com/" target="_blank" rel="noopener">Open ChatGPT</a>
+        <button class="btn" id="make" type="button">Download it again</button>
+        <button class="btn" id="copyDoc" type="button">Copy it instead</button>
+      </div>
+      <p class="status" id="status" role="status"></p>
+    </div>
     <div class="flexbox" id="flexBox" hidden>
       <b id="flexTitle"></b>
       <p class="small" style="margin:4px 0 8px">A later-starting player can move to FLEX in these lineups. No players, salary or projection change; it only leaves you a swap if late news breaks.</p>
@@ -318,14 +323,19 @@ td.sum{white-space:normal;min-width:260px}
       <div style="margin-top:10px"><button class="btn" id="flexMake" type="button">Download the FLEX fix for DraftKings</button></div>
       <p class="status" id="flexStatus" role="status"></p>
     </div>
-    <label class="small" for="notes" style="display:block;margin-top:14px;font-weight:600">What do you want the critique to focus on? <span class="muted" style="font-weight:400">Optional</span></label>
-    <textarea id="notes" rows="2" placeholder="For example: am I too heavy on Dak, and are my cheap receivers good enough?"></textarea>
-    <p class="small" id="countLine" style="margin-top:12px;font-weight:600"></p>
-    <div style="display:grid;gap:8px;margin-top:8px">
-      <button class="btn primary go" id="make" type="button" disabled>Download my critique request</button>
-      <button class="btn" id="copyDoc" type="button" disabled>Copy it instead</button>
-      <p class="status" id="status" role="status"></p>
-    </div>
+    <p class="small muted" id="tip" style="margin-top:14px"></p>
+    <details class="protect" id="options">
+      <summary>Options</summary>
+      <p class="small muted" style="margin:8px 0">You do not need any of these. If you change one after uploading, use "Download it again".</p>
+      <label class="small" for="notes" style="display:block;font-weight:600">A note for the AI</label>
+      <textarea id="notes" rows="2" placeholder="For example: am I too heavy on Dak, and are my cheap receivers good enough?"></textarea>
+      <fieldset class="modes">
+        <legend>What goes in the file</legend>
+        <label><input type="checkbox" id="useSaved"><b>Lineups I built in the Optimizer, as ready-made replacements</b><span id="savedHint"></span>
+          <span>Include the best <input id="topN" type="number" min="1" max="150" step="1" value="20" style="width:64px" aria-label="How many of each type"> of each type, cash and tournament.</span></label>
+        <label id="ownerRow" hidden><input type="checkbox" id="ownerMode"><b>Site owner: also critique the playbook</b><span>Adds a section for you proposing changes to the playbook's rules.</span></label>
+      </fieldset>
+    </details>
   </section>
 </div>
 
@@ -1168,7 +1178,7 @@ $('flexMake').onclick = () => {
 // The lineups to critique: the best saved Optimizer lineups of each type, plus each distinct lineup in the entries file.
 function gather() {
   const map = new Map(), list = [];
-  if (entries && !problem && $('useEntries').checked) {
+  if (entries && !problem) {
     for (const entry of entries) {
       if (!hasLineup(entry)) continue;
       const ids = entry.current.map(cellId), key = ids.join(',');
@@ -1203,30 +1213,31 @@ const whereOf = item => {
   return [...byContest.values()].map(c => c.n + ' in ' + c.name + ' (' + contestKind(c.name) + ', ' + c.fee + ')').join('; ');
 };
 
+let made = false;
 function render() {
-  const saved = savedLineups(), all = loadPool().length;
+  const saved = savedLineups();
   const tick = (ok, text) => '<li class="' + (ok === true ? 'ok' : ok === false ? 'no' : 'wait') + '">' + text + '</li>';
-  const rows = [];
+  const rows = [], filled = entries && !problem ? entries.filter(hasLineup).length : 0;
   if (problem) rows.push(tick(false, esc(problem)));
-  else if (entries) {
-    const filled = entries.filter(hasLineup).length;
-    rows.push(tick(filled > 0, filled ? '<b>' + filled + ' filled entries</b> from ' + esc(fileName) : 'None of the ' + entries.length + ' entries in ' + esc(fileName) + ' has a lineup yet'));
-  } else rows.push(tick(null, 'Waiting for your DraftKings entries file'));
-  rows.push(saved.length ? tick(true, '<b>' + saved.length + ' saved lineup' + (saved.length === 1 ? '' : 's') + '</b> from the Optimizer on this device can be offered as replacements') :
-    tick(null, (all ? 'Your ' + all + ' saved Optimizer lineups do not match this slate.' : 'No saved Optimizer lineups on this device. That is fine; the entries file is enough.')));
-  rows.push(tick(!!playbook, playbook ? 'Playbook, projections and ownership included' : 'Projections and ownership included (no playbook found)'));
+  else if (entries) rows.push(tick(filled > 0, filled ? '<b>' + filled + ' entries</b> read from ' + esc(fileName) : 'None of the ' + entries.length + ' entries in ' + esc(fileName) + ' has a lineup yet, so there is nothing to critique.'));
+  if (filled && saved.length && $('useSaved').checked) rows.push(tick(true, 'Your best saved Optimizer lineups are included as replacements'));
   $('ticks').innerHTML = rows.join('');
   $('useSaved').disabled = !saved.length;
-  $('useEntries').disabled = !(entries && !problem && entries.some(hasLineup));
   $('savedHint').textContent = saved.length ? saved.length + ' on this device for this slate.' : 'None on this device for this slate.';
-  $('entriesHint').textContent = $('useEntries').disabled ? 'Add your entries file above.' : 'Each different lineup is reviewed once, with the contests it is in.';
-  $('drop').classList.toggle('done', !!entries && !problem);
-  $('dropTitle').textContent = entries && !problem ? 'Entries loaded. Click to choose a different file.' : 'Add your DraftKings entries file';
-  $('dropHint').textContent = entries && !problem ? fileName : 'Click to choose it, or drag it here. On DraftKings: Lineups, then Edit entries, then download the CSV.';
+  $('drop').classList.toggle('done', filled > 0);
+  $('dropTitle').textContent = filled ? 'Entries loaded. Click to use a different file.' : 'Upload your DraftKings entries file';
+  $('dropHint').textContent = filled ? fileName : 'Click to choose it, or drag it here.';
+  $('tip').innerHTML = saved.length ? '' : 'Want sharper suggestions? <a href="../">Build some lineups in the Optimizer</a> first, then come back. They are handed to the AI as ready-made replacements.';
   renderFlex();
-  const list = gather();
-  $('countLine').textContent = list.length ? list.length + (list.length === 1 ? ' lineup' : ' lineups') + ' will be reviewed.' : 'Nothing to review yet.';
-  $('make').disabled = $('copyDoc').disabled = !list.length;
+  $('ready').hidden = !filled;
+  $('readyTitle').textContent = made ? 'Your critique file downloaded' : 'Your critique file is ready';
+}
+function makeFile() {
+  const doc = buildDocument();
+  download(doc.text, 'dfs-lineup-critique.md', 'text/markdown');
+  made = true;
+  $('status').textContent = 'It holds ' + holds(doc) + '.';
+  render();
 }
 
 async function take(file) {
@@ -1243,16 +1254,20 @@ async function take(file) {
     entries = null;
     problem = error && error.message ? error.message : 'That file could not be read. Make sure it is the CSV from DraftKings.';
   }
-  if (entries && !problem) $('useEntries').checked = true;
   $('status').textContent = '';
+  made = false;
+  // Saved Optimizer lineups ride along as replacements whenever there are any.
+  $('useSaved').checked = savedLineups().length > 0;
   render();
+  if (entries && !problem && entries.some(hasLineup)) makeFile();
 }
 $('dkFile').onchange = event => { const file = event.target.files[0]; event.target.value = ''; take(file); };
 const drop = $('drop');
 for (const type of ['dragenter', 'dragover']) drop.addEventListener(type, event => { event.preventDefault(); drop.classList.add('over'); });
 for (const type of ['dragleave', 'drop']) drop.addEventListener(type, event => { event.preventDefault(); drop.classList.remove('over'); });
 drop.addEventListener('drop', event => take(event.dataTransfer.files[0]));
-for (const id of ['useSaved', 'useEntries', 'topN', 'ownerMode']) $(id).onchange = () => { $('status').textContent = ''; render(); };
+for (const id of ['useSaved', 'topN', 'ownerMode']) $(id).onchange = () => { $('status').textContent = 'Changed. Use "Download it again" for a file with this setting.'; render(); };
+$('notes').onchange = () => { $('status').textContent = 'Note added. Use "Download it again" for a file that includes it.'; };
 
 function fieldFloor(name, fee) {
   if (!(fee > 0) || contestKind(name) !== 'Tournament') return null;
@@ -1410,13 +1425,13 @@ function buildDocument() {
         b && isEdited(p, b) ? 'EDITED' : '', p.action === 'lock' ? 'LOCK' : p.action === 'out' ? 'OUT' : '', p.cap ?? '']; })]), '');
   return {text: out.join('\n'), total: list.length, onDk: onDk.length, built: built.length, entries: filledEntries.length};
 }
-const holds = doc => (doc.entries ? doc.entries + ' entries holding ' + doc.onDk + (doc.onDk === 1 ? ' lineup' : ' lineups') : doc.built + ' lineups') + (doc.entries && doc.built ? ', plus ' + doc.built + ' Optimizer lineups as replacements' : '');
-$('make').onclick = () => {
-  const doc = buildDocument();
-  download(doc.text, 'dfs-lineup-critique.md', 'text/markdown');
-  $('status').textContent = 'Downloaded dfs-lineup-critique.md (' + holds(doc) + '). Now open Claude or ChatGPT, start a new chat, attach the file and send "Follow the instructions in this file."';
-};
-$('copyDoc').onclick = () => { const doc = buildDocument(); copy(doc.text, 'Document'); $('status').textContent = 'Copied (' + holds(doc) + '). Now open Claude or ChatGPT, start a new chat, paste it in and send.'; };
+const holds = doc => doc.entries + (doc.entries === 1 ? ' entry' : ' entries') + ' and ' + doc.onDk + (doc.onDk === 1 ? ' different lineup' : ' different lineups') + (doc.built ? ', plus ' + doc.built + ' Optimizer lineups as replacements' : '');
+$('make').onclick = makeFile;
+$('copyDoc').onclick = () => { const doc = buildDocument(); copy(doc.text, 'Document'); $('status').textContent = 'Copied. Paste it into a new chat and send. It holds ' + holds(doc) + '.'; };
+// The playbook critique is for the site owner only: it appears at /critique/#owner.
+const showOwner = () => { $('ownerRow').hidden = location.hash !== '#owner'; if ($('ownerRow').hidden) $('ownerMode').checked = false; };
+window.addEventListener('hashchange', showOwner);
+showOwner();
 window.addEventListener('focus', render);
 render();
 </script>
