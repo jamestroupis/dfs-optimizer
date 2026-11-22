@@ -314,6 +314,21 @@ textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 1
 @media (max-width:520px){.nav{gap:2px}.nav a{font-size:13.5px;padding:8px 9px;white-space:nowrap}}
 #box{min-width:0}
 .btn.go{white-space:normal;line-height:1.15}
+.h em{font:500 12px/1 var(--body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 8px}
+.drop.slim{padding:18px 16px}
+.drop.slim strong{font-size:19px}
+.lineup{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lineup li{display:grid;grid-template-columns:42px 1fr auto auto 30px;gap:8px;align-items:center;padding:6px 8px 6px 10px;border-top:1px solid var(--line);font-size:14px}
+.lineup li:first-child{border-top:0}
+.lineup .pos{font:700 12px/1 var(--display);letter-spacing:.06em;color:var(--muted)}
+.lineup .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.lineup .nm small{font-weight:400;color:var(--muted);margin-left:6px}
+.lineup .x{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:4px}
+.lineup .x:hover{color:var(--danger)}
+.lineup li.empty{display:block;color:var(--muted);padding:10px}
+#addPlayer{border:1px solid var(--line);border-radius:7px;padding:7px 10px;background:var(--surface);min-width:0}
+.link{border:0;background:none;padding:0;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit}
+.status.ok{color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
@@ -326,7 +341,7 @@ textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 1
     <p class="slate small" id="sourceLine" style="max-width:80ch"></p>
     <nav class="nav" aria-label="Tools"><a href="../">Optimizer</a><a href="../lineup-setup/">Lineup Setup</a><a href="../critique/">Critique</a><a href="./" aria-current="page">Rate My Lineup</a></nav>
   </div>
-  <p class="private"><strong>Runs entirely in your browser.</strong>Your screenshot never touches this site. It goes only to the AI you choose.</p>
+  <p class="private"><strong>Runs entirely in your browser.</strong>Your screenshot is read on this device and is never uploaded to this site.</p>
 </div><div class="stripe"></div></header>
 
 <div class="wrap" id="app" style="max-width:760px">
@@ -346,7 +361,26 @@ textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 1
       </div>
     </div>
 
-    <h2 class="h gap"><span>2</span>Get your file and send it with your screenshot</h2>
+    <h2 class="h gap"><span>2</span>Add your screenshot <em>optional</em></h2>
+    <label class="drop slim" id="drop" for="shot">
+      <strong id="dropTitle">Upload your lineup screenshot</strong>
+      <span id="dropHint">We read the nine players from it and put them in your file, so the file is all you send. Or skip this and send the screenshot to the AI yourself.</span>
+    </label>
+    <input class="vh" id="shot" type="file" accept="image/*">
+    <p class="status" id="shotStatus" role="status" style="margin-top:8px"></p>
+    <div id="lineupBox" hidden>
+      <p class="small" style="font-weight:600;margin:6px 0">Is this your lineup? Fix anything we got wrong.</p>
+      <ul class="lineup" id="lineupList"></ul>
+      <div class="bar" style="margin-top:8px">
+        <input class="grow" id="addPlayer" list="poolNames" placeholder="Add a player by name" autocomplete="off" aria-label="Add a player by name">
+        <button class="btn" id="clearLineup" type="button">Clear</button>
+      </div>
+      <datalist id="poolNames"></datalist>
+      <p class="status" id="lineupStatus" role="status" style="margin-top:8px"></p>
+    </div>
+    <p class="small" id="typeRow" style="margin-top:6px"><button class="link" id="typeIt" type="button">No screenshot? Pick your nine players instead.</button></p>
+
+    <h2 class="h gap"><span>3</span>Get your file and send it to an AI</h2>
     <button class="btn primary go" id="make" type="button" disabled>Pick cash or tournament first</button>
     <p class="status" id="status" role="status" style="margin-top:8px"></p>
 
@@ -354,7 +388,7 @@ textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 1
       <b id="readyTitle">Your rating file downloaded</b>
       <ol class="send" style="margin-top:8px">
         <li>Open a new chat in Claude or ChatGPT.</li>
-        <li>Attach <b>rate-my-lineup.md</b> and <b id="shotWord">your lineup screenshot</b>.</li>
+        <li id="attachLine">Attach <b>rate-my-lineup.md</b> and <b>your lineup screenshot</b>.</li>
         <li>Send: <i>Rate my lineup.</i></li>
       </ol>
       <div class="bar">
@@ -368,12 +402,10 @@ textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 1
     </div>
 
     <details class="protect" id="options" style="margin-top:16px">
-      <summary>No screenshot, or want to add a note?</summary>
-      <label class="small" for="typed" style="display:block;font-weight:600;margin-top:10px">Type your nine players instead of a screenshot</label>
-      <textarea id="typed" rows="3" placeholder="For example: Josh Allen, James Cook, Chuba Hubbard, CeeDee Lamb, ..."></textarea>
-      <label class="small" for="notes" style="display:block;font-weight:600;margin-top:10px">A note for the AI</label>
+      <summary>Add a note for the AI</summary>
+      <label class="vh" for="notes">A note for the AI</label>
       <textarea id="notes" rows="2" placeholder="For example: it is a $5 single-entry contest. Is my defense a mistake?"></textarea>
-      <p class="small muted" style="margin-top:6px">If you fill these in after getting your file, use "Download it again".</p>
+      <p class="small muted" style="margin-top:6px">If you add this after getting your file, use "Download it again".</p>
     </details>
     <p class="small muted" style="margin-top:14px">Have a whole DraftKings entries file? <a href="../critique/">Critique every lineup at once</a>. Want to build from scratch? <a href="../">Use the Optimizer</a>.</p>
   </section>
@@ -382,13 +414,13 @@ textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 1
 <section class="about" style="max-width:760px">
   <h2>Questions about rating a DraftKings lineup</h2>
   <dl>
-    <dt>How do I get my DraftKings lineup rated?</dt><dd>Take a screenshot of your lineup in DraftKings. Pick cash or tournament above and tap the button. A small file downloads. Attach that file and your screenshot to a new chat in Claude or ChatGPT and send "Rate my lineup."</dd>
+    <dt>How do I get my DraftKings lineup rated?</dt><dd>Take a screenshot of your lineup in DraftKings. Pick cash or tournament above, upload the screenshot, check the nine players we read from it, and tap the button. A small file downloads. Attach it to a new chat in Claude or ChatGPT and send "Rate my lineup." You can also skip the upload and send the screenshot to the AI along with the file.</dd>
     <dt>What do I get back?</dt><dd>A letter grade, how many projected points your lineup sits behind the best one this week for that kind of contest, the one or two swaps that would help most, and what to check before lock.</dd>
     <dt>Why do I have to say cash or tournament?</dt><dd>Because the same lineup can be good in one and poor in the other. Cash games reward the most dependable points. Tournaments reward lineups that can finish first, which means players who score together and some players the field is not using.</dd>
     <dt>Why does tournament size matter?</dt><dd>In a small tournament a strong, sensible lineup can win. In a huge one, thousands of people play the popular players, so winning takes a higher ceiling and a lineup fewer people share.</dd>
     <dt>What is my lineup compared with?</dt><dd>When you tap the button, this page builds the best lineups it can for your contest type from this week's projections. Those go in the file as the standard your lineup is measured against, along with every player's salary, projection and expected ownership.</dd>
-    <dt>Is it free?</dt><dd>Yes. No signup, no ads and nothing to buy. You only need an AI chat that accepts a file and a picture.</dd>
-    <dt>Does the site see my screenshot?</dt><dd>No. You never upload it here. It goes straight from you to the AI you choose.</dd>
+    <dt>Is it free?</dt><dd>Yes. No signup, no ads and nothing to buy. You only need an AI chat that accepts a file.</dd>
+    <dt>Does the site see my screenshot?</dt><dd>No. If you add it here, your own browser reads the player names from it on your device. The picture is never sent to this site, and only the nine player names go into your file.</dd>
     <dt>Which slates does it cover?</dt><dd>The DraftKings NFL slate named at the top of this page. A lineup from a different slate cannot be rated, because the players and salaries would not match.</dd>
     <dt>Will it make me win?</dt><dd>No one can promise that. It is a second opinion built on point projections, ownership estimates and a playbook. It does not know win odds and it can be wrong, so check injuries and contest rules yourself before lock.</dd>
   </dl>
@@ -1217,6 +1249,147 @@ async function benchmarks(which) {
   return benchCache[which] = list;
 }
 
+/* ---------- The visitor's own lineup: read from a screenshot on this device, or picked by name ---------- */
+let lineup = [], shotName = '', shotNote = '', reading = false, editing = false;
+const plain = text => String(text).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’.\-]/g, '')
+  .replace(/[^a-z ]/g, ' ').replace(/\b(jr|sr|ii|iii|iv)\b/g, ' ').replace(/\s+/g, ' ').trim();
+function editDistance(a, b) {
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  let row = Array.from({length: b.length + 1}, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i];
+    for (let j = 1; j <= b.length; j++) next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    row = next;
+  }
+  return row[b.length];
+}
+const nearly = (seen, want) => seen === want ? 0 : want.length >= 5 ? editDistance(seen, want) : 9;
+// Finds slate players named in text read from a screenshot. Returns player IDs in the order they appear.
+function playersInText(text) {
+  const lines = text.split(/\n+/), words = [], salaries = [];
+  lines.forEach((line, n) => {
+    for (const w of plain(line).split(' ')) if (w) words.push({w, line: n});
+    salaries[n] = (line.match(/\d{1,2}[,.]?\d{3}\b/g) || []).map(s => Number(s.replace(/\D/g, '')));
+  });
+  const nearSalary = (p, line) => [line - 1, line, line + 1, line + 2].some(n => (salaries[n] || []).includes(p.salary));
+  const hits = [];
+  for (const p of players) {
+    const want = plain(p.name).split(' ');
+    if (!want[0]) continue;
+    for (let i = 0; i + want.length <= words.length; i++) {
+      let dist = 0, abbr = false;
+      for (let k = 0; k < want.length && dist < 3; k++) {
+        const seen = words[i + k].w;
+        // "J Allen" for Josh Allen: an initial is accepted for the first name and settled by salary.
+        if (k === 0 && want.length > 1 && seen.length === 1 && seen === want[0][0]) abbr = true;
+        else dist += nearly(seen, want[k]);
+      }
+      if (dist > (want.join('').length >= 9 ? 2 : 1)) continue;
+      const salary = nearSalary(p, words[i].line);
+      if (p.pos === 'DST' && dist) continue;
+      if (abbr && !salary) continue;
+      hits.push({p, at: i, span: want.length, score: dist * 4 + (abbr ? 2 : 0) + (salary ? 0 : 1) + (Number(p.projection) > 0 ? 0 : .5)});
+    }
+  }
+  hits.sort((a, b) => a.score - b.score || b.span - a.span);
+  const taken = new Set(), used = new Set(), found = [];
+  for (const hit of hits) {
+    if (used.has(hit.p.id)) continue;
+    let clash = false;
+    for (let k = 0; k < hit.span; k++) if (taken.has(hit.at + k)) clash = true;
+    if (clash) continue;
+    for (let k = 0; k < hit.span; k++) taken.add(hit.at + k);
+    used.add(hit.p.id);
+    found.push(hit);
+  }
+  return found.sort((a, b) => a.at - b.at).map(hit => hit.p.id);
+}
+// Screenshots are often white text on black, which reads poorly. Enlarge small ones and flip dark ones to dark-on-light.
+async function prepareImage(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+    const scale = Math.min(3, Math.max(1, 1500 / image.naturalWidth)), limit = 4200 / (image.naturalHeight * scale);
+    const k = scale * Math.min(1, limit);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(image.naturalWidth * k);
+    canvas.height = Math.round(image.naturalHeight * k);
+    const ctx = canvas.getContext('2d', {willReadFrequently: true});
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height), px = data.data;
+    let sum = 0;
+    for (let i = 0; i < px.length; i += 4) { const g = px[i] * .299 + px[i + 1] * .587 + px[i + 2] * .114; px[i] = px[i + 1] = px[i + 2] = g; sum += g; }
+    if (sum / (px.length / 4) < 120) for (let i = 0; i < px.length; i += 4) px[i] = px[i + 1] = px[i + 2] = 255 - px[i];
+    ctx.putImageData(data, 0, 0);
+    return canvas;
+  } finally { URL.revokeObjectURL(url); }
+}
+let reader = null;
+function loadReader() {
+  return reader ||= (async () => {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'ocr/tesseract.min.js';
+      script.onload = resolve;
+      script.onerror = () => reject(Error('reader did not load'));
+      document.head.append(script);
+    });
+    return window.Tesseract.createWorker('eng', 1, {workerPath: new URL('ocr/worker.min.js', location.href).href, corePath: new URL('ocr/', location.href).href,
+      langPath: new URL('ocr/', location.href).href, gzip: true, workerBlobURL: false});
+  })().catch(error => { reader = null; throw error; });
+}
+async function readShot(file) {
+  if (!file || reading) return;
+  if (!/^image\//.test(file.type)) { shotNote = 'That file is not a picture. Choose a screenshot (PNG or JPG).'; shotName = ''; render(); return; }
+  reading = true; shotName = file.name; shotNote = '';
+  render();
+  try {
+    const [canvas, worker] = await Promise.all([prepareImage(file), loadReader()]);
+    const {data} = await worker.recognize(canvas);
+    lineup = playersInText(data.text).slice(0, 12);
+    window.__shotText = data.text;
+    shotNote = lineup.length ? '' : 'We could not find any of this week\'s players in that picture. Pick your players below, or skip this step and send the screenshot to the AI with your file.';
+    editing = true;
+  } catch (error) {
+    console.warn(error);
+    shotNote = 'This browser could not read the picture. Pick your players below, or skip this step and send the screenshot to the AI with your file.';
+    editing = true;
+  }
+  reading = false;
+  made = null;
+  render();
+}
+// Facts about the visitor's lineup: slot order, totals and whether it is a legal DraftKings Classic roster.
+function lineupFacts() {
+  const list = lineup.map(id => byId.get(id)).filter(Boolean);
+  const of = pos => list.filter(p => p.pos === pos);
+  const salary = list.reduce((sum, p) => sum + p.salary, 0), projection = list.reduce((sum, p) => sum + (Number(p.projection) || 0), 0);
+  const problems = [];
+  if (list.length !== 9) problems.push(list.length < 9 ? (9 - list.length) + ' more ' + (9 - list.length === 1 ? 'player' : 'players') + ' needed' : (list.length - 9) + ' too many: remove the extras');
+  else {
+    const n = {QB: of('QB').length, RB: of('RB').length, WR: of('WR').length, TE: of('TE').length, DST: of('DST').length};
+    if (n.QB !== 1 || n.DST !== 1 || n.RB < 2 || n.RB > 3 || n.WR < 3 || n.WR > 4 || n.TE < 1 || n.TE > 2)
+      problems.push('not a legal roster (' + n.QB + ' QB, ' + n.RB + ' RB, ' + n.WR + ' WR, ' + n.TE + ' TE, ' + n.DST + ' DST); DraftKings needs 1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX and 1 DST');
+    if (salary > 50000) problems.push(money(salary - 50000) + ' over the $50,000 salary cap');
+    if (new Set(list.map(p => p.game)).size < 2) problems.push('every player is from one game');
+  }
+  const complete = list.length === 9, shape = complete && !problems.some(text => /roster/.test(text));
+  let ids = null, f = null, kept = false;
+  if (shape) {
+    const flexPos = of('RB').length === 3 ? 'RB' : of('WR').length === 4 ? 'WR' : 'TE';
+    const flex = of(flexPos).slice().sort((a, b) => b.start - a.start || a.salary - b.salary)[0];
+    const rest = pos => of(pos).filter(p => p !== flex);
+    // A DraftKings screenshot lists the slots in order, so when the players already sit in a legal slot order, keep it: the eighth is their FLEX.
+    const asRead = list.map(p => p.pos), want = ['QB', 'RB', 'RB', 'WR', 'WR', 'WR', 'TE', null, 'DST'];
+    kept = want.every((pos, i) => pos ? asRead[i] === pos : ['RB', 'WR', 'TE'].includes(asRead[i]));
+    ids = kept ? list.map(p => p.id) : [...of('QB'), ...rest('RB'), ...rest('WR'), ...rest('TE'), flex, ...of('DST')].map(p => p.id);
+    f = describe(ids);
+  }
+  return {list, salary, projection, problems, complete, legal: complete && !problems.length, ids, f, kept, unprojected: list.filter(p => !(Number(p.projection) > 0))};
+}
+
 function contestLine() {
   if (kind === 'cash') return 'Cash game: a double-up, 50/50 or head-to-head, where about half the field wins the same prize.';
   const s = SIZES[size];
@@ -1225,7 +1398,7 @@ function contestLine() {
 
 function buildDocument(bench) {
   const base = new Map(baseline.map(p => [p.id, p]));
-  const typed = $('typed').value.trim(), notes = $('notes').value.trim();
+  const notes = $('notes').value.trim(), mine = lineupFacts(), have = mine.complete, partial = !have && mine.list.length > 0;
   const cash = kind === 'cash';
   const stamp = slate.updated ? new Date(slate.updated).toISOString().slice(0, 16).replace('T', ' ') + ' UTC by ' + (slate.by || 'jamestroupis') : slate.source === 'sheet' ? 'time not recorded, by ' + (slate.by || 'jamestroupis') : 'unknown';
   const csv = rows => '```csv\n' + rows.map(csvLine).join('\n') + '\n```';
@@ -1233,20 +1406,26 @@ function buildDocument(bench) {
   const out = [];
   out.push('# Rate my lineup: ' + slate.name, '', 'Made ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC at optimizer.jamestroupis.com/rate. DraftKings NFL Classic.', '');
   out.push('**To the AI reading this:** this document is the whole request. Whatever the message that came with it says ("rate my lineup", "thoughts?", or nothing at all), carry out section 1 now. ' +
-    (typed ? 'The player typed their lineup in section 3.' : 'The player\'s lineup is in the screenshot attached alongside this file.'), '');
+    (have ? 'The player\'s lineup is written out in section 3. No screenshot is needed.' : 'The player\'s lineup is in the screenshot attached alongside this file.'), '');
   out.push('## 1. Your job', '',
     'One DraftKings NFL Classic lineup, one contest type, a short answer. The player wants a grade and the one or two changes that matter before the games lock. They are not asking for a full review.', '',
     '**Before you answer, work through this. Do not show this work.**', '',
-    (typed
-      ? '1. Read the nine players from section 3. If a screenshot is attached as well, trust the screenshot where the two differ.'
-      : '1. Read the nine players from the attached screenshot. If there is no image attached and no lineup typed in section 3, reply with one sentence asking the player to attach a screenshot of their lineup, and stop.'),
-    '2. Match each player to section 5 by name, position and team. A salary shown in the screenshot should equal the salary in section 5; use that to settle a name you cannot read clearly. If you still cannot place a player, say which roster spot and ask, and do not guess. If most of the players are not in section 5 at all, the lineup is from a different slate than ' + slate.name + ': say that in one sentence and stop.',
-    '3. Add up salary and projection from section 5. Use a code tool if you have one; do not do arithmetic from memory.',
-    '4. Check the lineup is legal: 1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX (RB, WR or TE), 1 DST, nine different players from at least two games, total salary at or under $50,000. If it is not legal or not complete, say so first; that is the most important finding.',
+    ...(have ? [
+      '1. The nine players are in section 3. The site read them from the player\'s screenshot, or the player picked them, and the player confirmed the list. Salary, projection and the legality check there were computed by the site: use those numbers and do not redo them.',
+      '2. If a screenshot is attached as well and it plainly shows a different player from section 3, say which in one line and go with the screenshot for that player, taking the salary and projection from section 5.',
+      '3. If you need any other number, take it from section 5. Use a code tool if you have one; do not do arithmetic from memory.',
+      '4. ' + (mine.legal ? 'The lineup is legal and under the salary cap.' : 'The lineup has a problem: ' + mine.problems.join('; ') + '. Say so first; that is the most important finding.')
+    ] : [
+      '1. Read the nine players from the attached screenshot.' + (partial ? ' Section 3 lists the players the site managed to read from it, which may help with a name you cannot make out.' : '') + ' If there is no image attached, reply with one sentence asking the player to attach a screenshot of their lineup, and stop.',
+      '2. Match each player to section 5 by name, position and team. A salary shown in the screenshot should equal the salary in section 5; use that to settle a name you cannot read clearly. If you still cannot place a player, say which roster spot and ask, and do not guess. If most of the players are not in section 5 at all, the lineup is from a different slate than ' + slate.name + ': say that in one sentence and stop.',
+      '3. Add up salary and projection from section 5. Use a code tool if you have one; do not do arithmetic from memory.',
+      '4. Check the lineup is legal: 1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX (RB, WR or TE), 1 DST, nine different players from at least two games, total salary at or under $50,000. If it is not legal or not complete, say so first; that is the most important finding.'
+    ]),
     '5. Judge it for the contest in section 2, against the benchmark lineups in section 4, using the playbook in section 6 and your own knowledge of football and contest strategy.',
     '6. For anything specific to this week (injuries, inactives, weather, late news), look it up in this session if you can and say where you found it. Do not rely on memory, which may be out of date. This document has no injury data.', '',
     '**Your answer, in exactly this shape. About 180 words in total.**', '',
-    '**Your lineup:** the nine players as you read them, on one line in slot order, then total salary and total projection. This lets the player catch a misread name.', '',
+    (have ? '**Your lineup:** the nine players on one line in slot order, then total salary and total projection, as given in section 3.'
+      : '**Your lineup:** the nine players as you read them, on one line in slot order, then total salary and total projection. This lets the player catch a misread name.'), '',
     '**Grade: [letter]** then one sentence saying why. Use this scale:',
     '   - A: enter it as it is. An A is allowed and so is an F; do not default to B.',
     '   - B: sound, and one swap makes it better.',
@@ -1278,7 +1457,20 @@ function buildDocument(bench) {
           : size === 'massive' ? 'In a field this large, the lineup needs extreme but believable upside and something that keeps it from being the same as thousands of others. A lower projection is acceptable if it buys a real ceiling.'
           : 'The larger the field and the more top-heavy the prizes, the more ceiling and unpopular players matter, and the less raw projection does.')),
     '', notes ? '**A note from the player, which comes first:** ' + notes : 'The player added no note.', '');
-  out.push('## 3. The player\'s lineup', '', typed ? 'Typed by the player:\n\n' + typed : 'In the attached screenshot.', '');
+  out.push('## 3. The player\'s lineup', '');
+  if (have) {
+    const order = mine.ids ? mine.ids.map(id => byId.get(id)) : mine.list, slots = mine.ids ? SLOTS : mine.list.map(p => p.pos);
+    const gap = top.f.projection - mine.projection;
+    out.push('Confirmed by the player on the site. ' + (mine.kept ? 'The slots are in the order of the player\'s own lineup, so the FLEX shown is their FLEX.' : 'The site arranged the slots; which player sits in FLEX on DraftKings is not known, so do not comment on the FLEX choice.'), '',
+      csv([['Slot', 'Name', 'Pos', 'Team', 'Opp', 'Kickoff', 'Salary', 'Proj', 'Floor', 'Ceiling', 'Own %'],
+        ...order.map((p, i) => [slots[i], p.name, p.pos, p.team, (p.home ? 'vs ' : '@ ') + p.opp, p.when, p.salary, p.projection === '' ? 0 : p.projection, floorOf(p) === '' ? 0 : floorOf(p), ceilOf(p) === '' ? 0 : ceilOf(p), p.ownership ?? ''])]), '',
+      '- Total salary: ' + money(mine.salary) + ' (' + (mine.salary > 50000 ? money(mine.salary - 50000) + ' over the cap' : money(50000 - mine.salary) + ' unused') + ')',
+      '- Total projection: ' + mine.projection.toFixed(1) + ' points, which is ' + (gap >= 0 ? gap.toFixed(1) + ' behind ' : (-gap).toFixed(1) + ' ahead of ') + top.label + ' (' + top.f.projection.toFixed(1) + ')',
+      ...(mine.f ? ['- Floor ' + mine.f.floor.toFixed(1) + ', ceiling ' + mine.f.ceiling.toFixed(1) + ', ownership sum ' + mine.f.own.toFixed(0) + '%', '- Shape: ' + mine.f.shape + (mine.f.flags.length ? '. Flags: ' + mine.f.flags.join('; ') : '')] : []),
+      '- Legal: ' + (mine.legal ? 'yes' : 'NO: ' + mine.problems.join('; ')),
+      ...(mine.unprojected.length ? ['- No projection this week, so counted as 0 points and likely out or not playing: ' + mine.unprojected.map(p => p.name).join(', ') + '. Treat that as a serious problem unless you find news saying otherwise.'] : []), '');
+  } else if (partial) out.push('In the attached screenshot. The site read only these players from it, so the list is incomplete and may hold a mistake: ' + mine.list.map(p => p.name + ' (' + p.pos + ' ' + p.team + ')').join(', ') + '.', '');
+  else out.push('In the attached screenshot.', '');
   out.push('## 4. Benchmark lineups', '',
     'Built by this site for this contest type from the projections in section 5. Each is the best lineup the site could find for the rule in "Built as". ' + top.label + ' is the one to measure against. Floor and ceiling are the nine player values added up: a rough guide, not odds.', '',
     csv([['Label', 'Built as', 'Proj', 'Floor', 'Ceiling', 'Salary', 'Own sum %', 'Shape', ...SLOTS],
@@ -1291,7 +1483,7 @@ function buildDocument(bench) {
     csv([['Name', 'Pos', 'Team', 'Opp', 'Game', 'Kickoff', 'Salary', 'Proj', 'Floor', 'Ceiling', 'Own %', ...(edited ? ['Edited'] : [])],
       ...pool.map(p => { const b = base.get(p.id); return [p.name, p.pos, p.team, (p.home ? 'vs ' : '@ ') + p.opp, p.game, p.when, p.salary, p.projection, floorOf(p), ceilOf(p), p.ownership ?? '', ...(edited ? [b && isEdited(p, b) ? 'EDITED' : ''] : [])]; })]), '');
   out.push('## 6. Playbook', '', playbook ? 'Background for you on how to judge a lineup for its contest. Use the ' + (cash ? 'cash' : 'tournament') + ' parts. It is written for building whole portfolios, so ignore its output formats; section 1 of this document sets the format. Do not quote it or its rule numbers to the player.\n\n' + playbook : 'No playbook is included.', '');
-  return {text: out.join('\n').replace(/\n{3,}/g, '\n\n'), bench: bench.length, pool: pool.length};
+  return {text: out.join('\n').replace(/\n{3,}/g, '\n\n'), bench: bench.length, pool: pool.length, have};
 }
 
 const FILE = 'rate-my-lineup.md';
@@ -1303,14 +1495,33 @@ function render() {
   for (const button of $('pick').children) button.setAttribute('aria-pressed', String(button.dataset.kind === kind));
   for (const button of $('sizeChips').children) button.setAttribute('aria-pressed', String(button.dataset.size === size));
   $('sizes').hidden = kind !== 'gpp';
-  $('make').disabled = !kind || busy;
+  // The visitor's lineup
+  const mine = lineupFacts(), show = editing || lineup.length > 0;
+  $('drop').classList.toggle('done', !!shotName && !reading && lineup.length > 0);
+  $('dropTitle').textContent = reading ? 'Reading your screenshot…' : shotName && lineup.length ? 'Screenshot read. Tap to use a different one.' : 'Upload your lineup screenshot';
+  $('dropHint').textContent = reading ? 'This takes a few seconds the first time.' : shotName && lineup.length ? shotName : 'We read the nine players from it and put them in your file, so the file is all you send. Or skip this and send the screenshot to the AI yourself.';
+  $('shotStatus').textContent = shotNote;
+  $('shotStatus').className = 'status' + (shotNote ? ' warn' : '');
+  $('shotStatus').hidden = !shotNote;
+  $('lineupBox').hidden = !show;
+  $('typeRow').hidden = show;
+  if (show) {
+    $('lineupList').innerHTML = mine.list.length ? mine.list.map(p => '<li><span class="pos">' + p.pos + '</span><span class="nm">' + esc(p.name) + '<small>' + esc(p.team) + '</small></span><span class="num">' + money(p.salary) + '</span><span class="num muted">' + (Number(p.projection) > 0 ? Number(p.projection).toFixed(1) : 'no proj') + '</span><button class="x" type="button" data-id="' + p.id + '" aria-label="Remove ' + esc(p.name) + '">×</button></li>').join('')
+      : '<li class="empty">No players yet. Add them by name below.</li>';
+    const bench = benchCache[kind], gap = bench && mine.complete ? bench[0].f.projection - mine.projection : null;
+    $('lineupStatus').className = 'status ' + (mine.legal ? 'ok' : mine.list.length ? 'warn' : '');
+    $('lineupStatus').textContent = !mine.list.length ? '' : mine.list.length + ' of 9 players · ' + money(mine.salary) + ' · ' + mine.projection.toFixed(1) + ' projected' +
+      (mine.legal ? '. Legal lineup.' : ' · ' + mine.problems.join('; ') + '.') +
+      (gap == null ? '' : gap > 0.05 ? ' That is ' + gap.toFixed(1) + ' points behind the best ' + (kind === 'cash' ? 'cash' : 'stacked tournament') + ' lineup this week.' : ' That matches the best ' + (kind === 'cash' ? 'cash' : 'stacked tournament') + ' lineup this week on projection.');
+  }
+  $('make').disabled = !kind || busy || reading;
   $('make').textContent = busy ? 'Building your file…' : !kind ? 'Pick cash or tournament first' : 'Get my ' + (kind === 'cash' ? 'cash' : 'tournament') + ' rating file';
-  const current = made && made.kind === kind && made.size === size;
+  const current = made && made.kind === kind && made.size === size && made.key === lineup.join(',');
   $('ready').hidden = !current;
   if (current) {
-    $('shotWord').textContent = $('typed').value.trim() ? 'your screenshot, if you have one' : 'your lineup screenshot';
+    $('attachLine').innerHTML = made.have ? 'Attach <b>rate-my-lineup.md</b>. Your lineup is already inside it.' : 'Attach <b>rate-my-lineup.md</b> and <b>your lineup screenshot</b>.';
     $('share').hidden = !canShare(made.text);
-    $('holds').textContent = 'The file holds the ' + made.bench + ' best ' + (kind === 'cash' ? 'cash' : 'tournament') + ' lineups this page could build, ' + made.pool + ' players with salaries and projections, and the instructions for the AI.';
+    $('holds').textContent = 'The file holds ' + (made.have ? 'your lineup, ' : '') + 'the ' + made.bench + ' best ' + (kind === 'cash' ? 'cash' : 'tournament') + ' lineups this page could build, ' + made.pool + ' players with salaries and projections, and the instructions for the AI.';
   }
 }
 async function makeFile() {
@@ -1319,12 +1530,12 @@ async function makeFile() {
   $('status').className = 'status';
   $('status').textContent = 'Finding the best ' + (kind === 'cash' ? 'cash' : 'tournament') + ' lineups for ' + slate.name + '. This takes a few seconds.';
   render();
-  const want = kind, wantSize = size;
+  const want = kind;
   try {
     const bench = await benchmarks(want);
     if (want !== kind) { busy = false; return makeFile(); }
     const doc = buildDocument(bench);
-    made = {...doc, kind: want, size: size};
+    made = {...doc, kind: want, size: size, key: lineup.join(',')};
     download(doc.text, FILE, 'text/markdown');
     $('status').textContent = '';
   } catch (error) {
@@ -1339,7 +1550,7 @@ async function makeFile() {
 // Rebuild the text with the current choices and notes, without running the lineup search again.
 async function fresh() {
   const doc = buildDocument(await benchmarks(kind));
-  made = {...doc, kind, size};
+  made = {...doc, kind, size, key: lineup.join(',')};
   return doc.text;
 }
 
@@ -1349,6 +1560,7 @@ $('pick').onclick = event => {
   kind = button.dataset.kind;
   if (kind === 'cash') size = '';
   render();
+  benchmarks(kind).then(render, () => {});
 };
 $('sizeChips').onclick = event => {
   const button = event.target.closest('button');
@@ -1369,7 +1581,35 @@ $('share').onclick = async () => {
   try { await navigator.share({files: [shareFile(text)], title: 'Rate my lineup'}); }
   catch (error) { if (error.name !== 'AbortError') toast('Sharing did not work here. Use the download button.'); }
 };
-$('typed').addEventListener('input', render);
+// Screenshot and lineup editing
+$('shot').onchange = event => { readShot(event.target.files[0]); event.target.value = ''; };
+for (const type of ['dragenter', 'dragover']) $('drop').addEventListener(type, event => { event.preventDefault(); $('drop').classList.add('over'); });
+for (const type of ['dragleave', 'drop']) $('drop').addEventListener(type, event => { event.preventDefault(); $('drop').classList.remove('over'); });
+$('drop').addEventListener('drop', event => readShot(event.dataTransfer.files[0]));
+window.addEventListener('paste', event => { const file = [...(event.clipboardData?.files || [])].find(f => /^image\//.test(f.type)); if (file) readShot(file); });
+const optionLabel = p => p.name + ' (' + p.pos + ' ' + p.team + ')';
+$('poolNames').innerHTML = players.slice().sort((a, b) => Number(b.projection) - Number(a.projection)).map(p => '<option value="' + esc(optionLabel(p)) + '">').join('');
+function addTyped() {
+  const value = $('addPlayer').value.trim();
+  if (!value) return;
+  const match = players.find(p => optionLabel(p) === value) || (() => { const hits = players.filter(p => plain(p.name) === plain(value)); return hits.length === 1 ? hits[0] : null; })();
+  if (!match) return;
+  if (!lineup.includes(match.id)) lineup.push(match.id);
+  $('addPlayer').value = '';
+  made = null;
+  render();
+}
+$('addPlayer').addEventListener('input', addTyped);
+$('addPlayer').addEventListener('change', addTyped);
+$('lineupList').onclick = event => {
+  const button = event.target.closest('button.x');
+  if (!button) return;
+  lineup = lineup.filter(id => id !== button.dataset.id);
+  made = null;
+  render();
+};
+$('clearLineup').onclick = () => { lineup = []; shotName = ''; shotNote = ''; editing = false; made = null; render(); };
+$('typeIt').onclick = () => { editing = true; render(); $('addPlayer').focus(); };
 render();
 </script>
 </body>
