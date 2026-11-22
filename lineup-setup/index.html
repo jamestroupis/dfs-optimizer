@@ -256,6 +256,19 @@ td.sum{white-space:normal;min-width:260px}
 .ticks li.wait::before{content:"\2022";color:var(--muted)}
 .ticks li.no{color:var(--danger)}
 .ticks li.no a{color:inherit}
+.modes{border:1px solid var(--line);border-radius:10px;padding:10px 14px 12px;margin:14px 0 0;display:grid;gap:10px}
+.modes legend{font-weight:600;font-size:14px;padding:0 6px}
+.modes label{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:start;cursor:pointer}
+.modes label input{margin-top:4px}
+.modes label span{grid-column:2;color:var(--muted);font-size:13px}
+.protect{border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:10px}
+.protect>summary{cursor:pointer;font-weight:600;font-size:14px}
+.protect .pc{padding:8px 0;border-top:1px solid var(--line)}
+.protect .pc label{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;cursor:pointer}
+.protect .pc details{margin:4px 0 0 24px}
+.protect .pc details summary{cursor:pointer;font-size:13px;color:var(--accent)}
+.protect .pe{font-size:13px;padding:3px 0}
+#protectList{max-height:340px;overflow:auto}
 #notes{width:100%;margin-top:6px;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--surface);color:var(--ink);font:inherit;resize:vertical}
 </style>
 </head>
@@ -280,14 +293,25 @@ td.sum{white-space:normal;min-width:260px}
     </label>
     <input class="vh" id="dkFile" type="file">
     <ul class="ticks" id="ticks"></ul>
+    <fieldset class="modes" id="modes" hidden>
+      <legend>What should the AI do?</legend>
+      <label><input type="radio" name="mode" value="rebuild"><b>Rebuild Portfolio</b><span>Review every entry and return a rebuilt portfolio with reasons and before-and-after exposure. Filled entries can be replaced unless you protect them.</span></label>
+      <label><input type="radio" name="mode" value="fill"><b>Fill Empty Entries</b><span>Give lineups only to entries that have none. Filled entries stay as they are.</span></label>
+      <label><input type="radio" name="mode" value="audit"><b>Audit Only</b><span>Report on what is on DraftKings now. No changes and no upload file.</span></label>
+    </fieldset>
+    <details class="protect" id="protect" hidden>
+      <summary>Protect entries <span class="muted" id="protectCount"></span></summary>
+      <p class="small muted" style="margin:8px 0">A protected entry keeps the lineup it has on DraftKings. Every other filled entry is open to review and replacement.</p>
+      <div id="protectList"></div>
+    </details>
     <label class="small" for="notes" style="display:block;margin-top:14px;font-weight:600">Anything else the AI should know? <span class="muted" style="font-weight:400">Optional</span></label>
-    <textarea id="notes" rows="2" placeholder="For example: I want Dak in most tournament lineups, and no Bears."></textarea>
+    <textarea id="notes" rows="2" placeholder="For example: I have too much Dak. Show me how many lineups fade him, and keep no Bears."></textarea>
     <div style="display:grid;gap:8px;margin-top:14px">
       <button class="btn primary go" id="make" type="button" disabled>Download my AI document</button>
       <button class="btn" id="copyDoc" type="button" disabled>Copy it instead</button>
       <p class="status" id="status" role="status"></p>
     </div>
-    <p class="small muted" style="margin-top:6px">Then start a chat with an AI, attach the document, and say "follow the instructions in this file." It will send back a DraftKings upload file.</p>
+    <p class="small muted" style="margin-top:6px">Then start a chat with an AI, attach the document, and say "follow the instructions in this file." It will send back its proposal and, unless you chose Audit Only, a DraftKings upload file.</p>
   </section>
 </div>
 
@@ -296,7 +320,8 @@ td.sum{white-space:normal;min-width:260px}
   <dl>
     <dt>Your contests and entries</dt><dd>Read from the file you add. Nothing is uploaded; it stays on this device.</dd>
     <dt>Your lineups</dt><dd>The best lineups you built in the <a href="../">Optimizer</a> on this device, picked up automatically.</dd>
-    <dt>The playbook and instructions</dt><dd>The rules the AI should follow to choose a lineup for every entry, plus anything you type in the box.</dd>
+    <dt>The playbook and instructions</dt><dd>What you want done (rebuild the portfolio, fill empty entries, or audit only), the rules the AI should follow, and anything you type in the box.</dd>
+    <dt>What is on DraftKings now</dt><dd>The lineups your entries already hold, and how much of your money rides on each player, pair and stack, so the AI can show before and after.</dd>
     <dt>The player pool</dt><dd>Salaries, projections and your locks and exclusions, so the AI works from the same numbers you did.</dd>
   </dl>
 </section>
@@ -1079,6 +1104,56 @@ catch { $('app').innerHTML = '<p class="fatal">This week\'s slate did not load. 
 let playbook = '';
 try { const r = await fetch('../playbook.md', {cache: 'no-cache'}); if (r.ok) playbook = (await r.text()).trim(); } catch {}
 let entries = null, fileName = '', problem = '';
+/* ---------- What the AI is asked to do ---------- */
+// rebuild: review every entry, replace where stronger. fill: only entries with no lineup. audit: report, change nothing.
+let mode = 'fill', modeChosen = false;
+const protectKey = () => 'dfs-optimizer:protect:' + slate.name;
+let protectedIds = new Set();
+try { protectedIds = new Set(JSON.parse(localStorage.getItem(protectKey()) || '[]')); } catch {}
+const saveProtected = () => { try { localStorage.setItem(protectKey(), JSON.stringify([...protectedIds])); } catch {} };
+const isProtected = entry => hasLineup(entry) && protectedIds.has(entry.id);
+// "Dak Prescott (44943629)" or "Dak Prescott (44943629) (LOCKED)" -> the ID; a bare ID is accepted too.
+const cellId = cell => (/\((\d+)\)/.exec(cell || '') || /^(\d+)$/.exec((cell || '').trim()) || [])[1] || '';
+const cellName = cell => (cell || '').replace(/\s*\(.*$/, '').trim();
+function setMode(next, chosen) {
+  mode = next;
+  if (chosen) modeChosen = true;
+  for (const input of document.querySelectorAll('input[name=mode]')) input.checked = input.value === mode;
+}
+for (const input of document.querySelectorAll('input[name=mode]')) input.onchange = () => { setMode(input.value, true); $('status').textContent = ''; render(); };
+function renderProtect() {
+  const byContest = new Map();
+  for (const entry of entries.filter(hasLineup)) {
+    if (!byContest.has(entry.contestId)) byContest.set(entry.contestId, {name: entry.contest, fee: entry.fee, list: []});
+    byContest.get(entry.contestId).list.push(entry);
+  }
+  $('protectList').innerHTML = [...byContest.entries()].map(([id, c]) =>
+    '<div class="pc"><label><input type="checkbox" data-contest="' + esc(id) + '"> <b>' + esc(c.name) + '</b> <span class="muted">' + c.list.length + (c.list.length === 1 ? ' filled entry' : ' filled entries') + ' at ' + esc(c.fee) + '</span></label>' +
+    '<details><summary>Choose single entries</summary>' + c.list.map(entry => {
+      const f = describe(entry.current.map(cellId));
+      return '<label class="pe"><input type="checkbox" data-entry="' + esc(entry.id) + '"> Entry ' + esc(entry.id) + ' <span class="muted">' + esc(f ? f.qb.name + ', ' + f.shape + ', ' + f.projection.toFixed(1) + ' pts' : entry.current.filter(Boolean).map(cellName).slice(0, 3).join(', ')) + '</span></label>';
+    }).join('') + '</details></div>').join('');
+  syncProtect();
+}
+function syncProtect() {
+  for (const box of $('protectList').querySelectorAll('input[data-entry]')) box.checked = protectedIds.has(box.dataset.entry);
+  for (const box of $('protectList').querySelectorAll('input[data-contest]')) {
+    const list = entries.filter(entry => hasLineup(entry) && entry.contestId === box.dataset.contest), on = list.filter(isProtected).length;
+    box.checked = on > 0 && on === list.length;
+    box.indeterminate = on > 0 && on < list.length;
+  }
+  const n = entries.filter(isProtected).length;
+  $('protectCount').textContent = n ? '(' + n + ' protected)' : '(none protected)';
+}
+$('protectList').addEventListener('change', event => {
+  const box = event.target;
+  if (box.dataset.contest != null) for (const entry of entries) { if (hasLineup(entry) && entry.contestId === box.dataset.contest) protectedIds[box.checked ? 'add' : 'delete'](entry.id); }
+  else if (box.dataset.entry != null) protectedIds[box.checked ? 'add' : 'delete'](box.dataset.entry);
+  else return;
+  saveProtected();
+  $('status').textContent = '';
+  render();
+});
 $('slateLine').textContent = slate.name + updatedLine();
 $('sourceLine').textContent = slate.note || '';
 
@@ -1097,7 +1172,10 @@ function render() {
   if (problem) rows.push(tick(false, esc(problem)));
   else if (entries) {
     const contests = new Set(entries.map(entry => entry.contestId)).size, filled = entries.filter(hasLineup).length;
-    rows.push(tick(true, '<b>' + entries.length + ' entries</b> in ' + contests + ' contests from ' + esc(fileName) + (filled ? ' (' + filled + ' already have a lineup and will be replaced)' : '')));
+    const kept = entries.filter(isProtected).length;
+    const detail = !filled ? '' : mode === 'rebuild' ? ' (' + filled + ' already have a lineup: ' + (filled - kept) + ' open to review, ' + kept + ' protected)'
+      : mode === 'audit' ? ' (' + filled + ' have a lineup to audit)' : ' (' + filled + ' already have a lineup and stay as they are)';
+    rows.push(tick(true, '<b>' + entries.length + ' entries</b> in ' + contests + ' contests from ' + esc(fileName) + detail));
   } else rows.push(tick(null, 'Waiting for your DraftKings entries file'));
   rows.push(saved.length ? tick(true, '<b>' + saved.length + ' lineup' + (saved.length === 1 ? '' : 's') + '</b> from your Optimizer builds on this device') :
     tick(false, (all ? 'Your ' + all + ' saved lineups do not match this slate. ' : 'No lineups found from the Optimizer on this device. ') + '<a href="../">Build some in the Optimizer</a> first, then come back.'));
@@ -1106,7 +1184,14 @@ function render() {
   $('drop').classList.toggle('done', !!entries && !problem);
   $('dropTitle').textContent = entries && !problem ? 'Entries loaded. Click to choose a different file.' : 'Add your DraftKings entries file';
   $('dropHint').textContent = entries && !problem ? fileName : 'Click to choose it, or drag it here. On DraftKings: Lineups, then Edit entries, then download the CSV.';
-  $('make').disabled = $('copyDoc').disabled = !entries || !!problem;
+  const ready = !!entries && !problem, anyFilled = ready && entries.some(hasLineup);
+  $('modes').hidden = !ready;
+  $('protect').hidden = !(anyFilled && mode === 'rebuild');
+  if (ready) {
+    document.querySelector('input[name=mode][value=audit]').disabled = !anyFilled;
+    syncProtect();
+  }
+  $('make').disabled = $('copyDoc').disabled = !ready;
 }
 
 async function take(file) {
@@ -1124,6 +1209,11 @@ async function take(file) {
     problem = error && error.message ? error.message : 'That file could not be read. Make sure it is the CSV from DraftKings.';
   }
   $('status').textContent = '';
+  if (entries && !problem) {
+    // A slate that already has lineups on DraftKings starts in Rebuild Portfolio.
+    setMode(entries.some(hasLineup) ? 'rebuild' : 'fill');
+    renderProtect();
+  }
   render();
 }
 $('dkFile').onchange = event => { const file = event.target.files[0]; event.target.value = ''; take(file); };
@@ -1131,6 +1221,49 @@ const drop = $('drop');
 for (const type of ['dragenter', 'dragover']) drop.addEventListener(type, event => { event.preventDefault(); drop.classList.add('over'); });
 for (const type of ['dragleave', 'drop']) drop.addEventListener(type, event => { event.preventDefault(); drop.classList.remove('over'); });
 drop.addEventListener('drop', event => take(event.dataTransfer.files[0]));
+
+function currentLineups() {
+  const map = new Map();
+  for (const entry of entries) {
+    if (!hasLineup(entry)) continue;
+    const ids = entry.current.map(cellId), key = ids.join(',');
+    if (!map.has(key)) map.set(key, {ids, cells: entry.current, entries: [], f: describe(ids),
+      locked: entry.current.filter(cell => /locked/i.test(cell || '')).map(cellName)});
+    map.get(key).entries.push(entry);
+  }
+  const list = [...map.values()].sort((a, b) => b.entries.length - a.entries.length || (b.f ? b.f.projection : 0) - (a.f ? a.f.projection : 0));
+  list.forEach((item, i) => { item.label = 'C' + (i + 1); });
+  return list;
+}
+// Exposure of the lineups on DraftKings now: entries and entry fees riding on each player, pair and QB stack, by contest group.
+function exposureGroups(current) {
+  const groups = new Map();
+  const bump = (map, key, fee) => { const v = map.get(key) || {n: 0, fees: 0}; v.n++; v.fees += fee; map.set(key, v); };
+  for (const item of current) {
+    const names = item.ids.map((id, i) => { const p = byId.get(id); return p ? p.name + ' (' + p.pos + ' ' + p.team + ')' : (cellName(item.cells[i]) || 'Unknown player'); });
+    const stack = item.f ? item.f.qb.name + ' | ' + item.f.shape + ' | game ' + item.f.qb.game : 'Lineup with a player not in the pool';
+    for (const entry of item.entries) {
+      const fee = feeOf(entry);
+      for (const name of ['All contests', contestKind(entry.contest)]) {
+        if (!groups.has(name)) groups.set(name, {n: 0, fees: 0, players: new Map(), pairs: new Map(), stacks: new Map()});
+        const g = groups.get(name);
+        g.n++; g.fees += fee;
+        names.forEach(n => bump(g.players, n, fee));
+        for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) bump(g.pairs, [names[i], names[j]].sort().join(' + '), fee);
+        bump(g.stacks, stack, fee);
+      }
+    }
+  }
+  return ['All contests', 'Cash', 'Qualifier', 'Tournament'].filter(name => groups.has(name)).map(name => ({name, ...groups.get(name)}));
+}
+
+const REBUILD_BRIEF = [
+  'Rebuild my portfolio for the contests I\'ve already entered. Review every entry and return a complete proposed assignment, showing which lineups you\'d replace and which you\'d retain. Respect protected entries, player locks and exclusions, and any exposure limits I set. Use the optimizer\'s candidate lineups where they serve the strategy. Build new lineups when the candidates leave a gap. You can change multiple players when the full-lineup change is stronger.',
+  'Build for each contest. In cash, prioritize full-lineup projection and reliable opportunity. In smaller tournaments, preserve strong projection and differentiate where you have a football reason. In large, top-heavy tournaments, build around several distinct, plausible outcomes that can produce slate-winning scores. In qualifiers, use the actual advancement rules when available. Give the most consequential entries their own recommendations.',
+  'Show me why each proposed tournament lineup can win. Give each distinct build a short "Wins if..." explanation. Name the game outcome, which players benefit together, and which popular outcome it can beat. If you give up projected points, show how many and explain what the trade buys. Group lineups that share a game story, then explain what each variation adds. Use ceiling estimates as inputs and disclose the limits of the model.',
+  'Show me the portfolio before and after. Report player, player-pair, and QB/game-stack exposure by contest group. Include counts, percentages, and dollars exposed for the biggest bets. Start with the players I flag and surface any larger concentration you find. Show how many lineups fade each player I\'m worried about and how many fade both, with examples of how those lineups can win. Explain any concentration you keep deliberately.',
+  'Return lineups I can review and use. Give me a lineup-to-entry map, full rosters, salary and projection, and a DraftKings CSV containing every entry you propose changing. Use the actual entry IDs and contest details. Validate roster eligibility, salary, duplicate lineups within each tournament, and FLEX placement for late swap. Flag any player availability or contest details you couldn\'t verify.'
+];
 
 function buildDocument() {
   const saved = savedLineups().map(item => ({...item, f: describe(item.ids)})).sort((a, b) => b.f.projection - a.f.projection);
@@ -1142,59 +1275,131 @@ function buildDocument() {
     contests.get(entry.contestId).n++;
   }
   const fees = entries.reduce((sum, entry) => sum + feeOf(entry), 0);
-  const filled = entries.filter(hasLineup).length;
+  const filled = entries.filter(hasLineup).length, empty = entries.length - filled;
+  const kept = mode === 'rebuild' ? entries.filter(isProtected).length : 0;
+  const open = filled - kept;
+  const current = currentLineups();
+  const labelOf = new Map();
+  for (const item of current) for (const entry of item.entries) labelOf.set(entry.id, item.label);
+  const statusOf = entry => !hasLineup(entry) ? 'EMPTY' : mode === 'fill' ? 'KEEP' : mode === 'audit' ? 'CURRENT' : isProtected(entry) ? 'PROTECTED' : 'REVIEW';
   const stamp = slate.updated ? new Date(slate.updated).toISOString().slice(0, 16).replace('T', ' ') + ' UTC by ' + (slate.by || 'jamestroupis') : slate.source === 'sheet' ? 'time not recorded, by ' + (slate.by || 'jamestroupis') : 'unknown';
   const notes = $('notes').value.trim();
   const csv = rows => '```csv\n' + rows.map(csvLine).join('\n') + '\n```';
+  const upload = ['```csv', 'Entry ID,Contest Name,Contest ID,Entry Fee,QB,RB,RB,WR,WR,WR,TE,FLEX,DST', '```'];
+  const modeName = {rebuild: 'Rebuild Portfolio', fill: 'Fill Empty Entries', audit: 'Audit Only'}[mode];
   const out = [];
-  out.push('# NFL DFS lineup setup: ' + slate.name, '', 'Made ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC at optimizer.jamestroupis.com. DraftKings NFL Classic.', '');
+  out.push('# NFL DFS lineup setup: ' + slate.name, '', 'Made ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC at optimizer.jamestroupis.com. DraftKings NFL Classic. Mode: ' + modeName + '.', '');
   out.push('## 1. Your job', '',
-    'You are setting DraftKings NFL Classic lineups for the person who gave you this document. It holds everything you need: the playbook to follow, their contests and entries, the lineups they built, and the player pool.',
-    '',
-    '**Do this:** build the best portfolio you can for all ' + entries.length + ' entries in section 4, using the lineups in section 5 and following the playbook in section 3, and assign a lineup to every entry. ' + (filled ? filled + ' of the entries already hold a lineup on DraftKings. Replace them all. Those lineups have not been checked or optimized and are not approved choices under the playbook, so do not assume they are good and do not keep one because it is already there. ' : '') + 'Then return a DraftKings upload file.',
-    '',
-    '**Your answer must be:**',
-    '1. One CSV code block in exactly this format, one row per entry, with DraftKings player IDs (numbers only) in the nine player columns:',
-    '',
-    '```csv', 'Entry ID,Contest Name,Contest ID,Entry Fee,QB,RB,RB,WR,WR,WR,TE,FLEX,DST', '```',
-    '',
-    '2. Then a short report: which lineup label went to which contests and why, a "Wins if:" line for each distinct tournament lineup, the share of tournament entries for your ten most-used players, what you could not verify, and a verdict of GO, GO WITH WARNINGS or NO-GO.',
-    '',
-    '**Rules you may not break:**',
+    'You are working on DraftKings NFL Classic lineups for the person who gave you this document. It holds everything you need: their directions, the playbook to follow, their contests and entries, the lineups on DraftKings now, the candidate lineups they built, and the player pool.', '');
+  const shared = [
     '- Copy each Entry ID, Contest Name, Contest ID and Entry Fee exactly from section 4. Never invent an entry.',
-    '- Give a row for every entry (' + entries.length + ' of them), whether its status is EMPTY or REPLACE. Do not stop early or write "and so on". Continue in a second CSV block if needed, then state how many rows you returned.',
-    '- Choose each entry\'s lineup on merit across the whole portfolio: contest type, field size, entry limit, exposure and the playbook. An entry may end up with the lineup it has now only if that lineup is among those in section 5 or passes the same checks, and is still the best choice.',
-    '- If a lineup already on DraftKings shows a player marked LOCKED, that game has started and the player cannot be changed: keep that player in the same slot, build the rest around them, and say which entries this affected.',
-    '- Use the lineups in section 5 by copying their IDs in the slot order shown. Build a new lineup only when none fits, and then check it yourself: 1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX (RB, WR or TE), 1 DST, nine different players from at least two games, total salary at or under $50,000, latest kickoff in FLEX where the roster allows.',
-    '- Use only players in section 6, never one marked OUT. Treat LOCK and Max % as the owner\'s instructions.',
-    '- Put one best cash lineup in every cash entry (double-ups, 50/50s, head-to-heads). Do not repeat a lineup inside the same tournament contest.',
+    '- Use only players in section 7, never one marked OUT. Treat LOCK and Max % as the owner\'s instructions.',
+    '- If a lineup on DraftKings shows a player marked LOCKED (section 5), that game has started and the player cannot be changed: keep that player in the same slot, build the rest around them, and say which entries this affected.',
     '- Use nothing from memory about this week: no injuries, depth charts, weather or ownership unless you looked it up in this session and say where. If you cannot check news, say so, and do not give a clean GO.',
     '- Do not do arithmetic from memory; use the numbers here, and a code tool if you have one. Do not give cash odds or win odds; nothing here supports them.',
-    '- Report total entry fees as given ($' + fees.toFixed(2) + ' across ' + entries.length + ' entries). Do not suggest adding entries or chasing losses. Never say the lineups were uploaded; you cannot know that.', '');
-  out.push('## 2. Directions from the owner', '', notes || 'None given.', '');
+    '- Report total entry fees as given ($' + fees.toFixed(2) + ' across ' + entries.length + ' entries). Do not suggest adding entries or chasing losses. Never say the lineups were uploaded; you cannot know that.'];
+  const newLineup = 'check it yourself: 1 QB, 2 RB, 3 WR, 1 TE, 1 FLEX (RB, WR or TE), 1 DST, nine different players from at least two games, total salary at or under $50,000, latest kickoff in FLEX where the roster allows.';
+  if (mode === 'rebuild') {
+    out.push('**The owner\'s request, in their words:**', '', ...REBUILD_BRIEF.flatMap(p => [p, '']),
+      '**How this document maps to that request:**',
+      '- There are ' + entries.length + ' entries in section 4: ' + open + ' marked REVIEW, ' + kept + ' marked PROTECTED and ' + empty + ' marked EMPTY.',
+      '- REVIEW entries hold a lineup on DraftKings that has not been checked or optimized. It is not an approved choice under the playbook. Judge it against the alternatives and replace it whenever the portfolio is stronger for it; retain it only when it earns its place, and say why.',
+      '- PROTECTED entries are the owner\'s explicit choice. Leave them exactly as they are, and count them in the before and after exposure.',
+      '- EMPTY entries need a lineup.',
+      '- "Players I flag" and "players I\'m worried about" are the players named in section 2, plus any marked LOCK, OUT or with a Max % in section 7. If section 2 names none, say so and lead with the largest concentrations you find.',
+      '- The directions in section 2 come first. Where they conflict with a default in the playbook, follow the directions and say that you did.',
+      '- The "before" exposure is already computed in section 5. Compute "after" the same way, with a code tool: entries holding the player, divided by filled entries in the group; dollars are the entry fees of those entries.',
+      '',
+      '**Your answer must include, in this order:**',
+      '1. Lineup-to-entry map: one CSV code block with a row for every entry (all ' + entries.length + '), columns Entry ID, Contest Name, Contest ID, Entry Fee, Action, Old lineup, New lineup. Action is RETAIN, REPLACE, FILL or PROTECTED. Use the labels from this document (C for lineups on DraftKings now, L for candidates) and N1, N2 and so on for lineups you build.',
+      '2. Full rosters: every distinct lineup in the proposed portfolio, with its label, the nine players in slot order, salary and projection.',
+      '3. Why it can win: tournament lineups grouped by game story, a "Wins if..." line for each distinct build, and what each variation adds. Where you gave up projected points, how many and what the trade bought.',
+      '4. Before and after exposure by contest group: players, player pairs and QB/game stacks, with counts, percentages and dollars, starting with the flagged players. For each flagged player, how many lineups fade them, how many fade all of them, and an example of how such a lineup wins.',
+      '5. The DraftKings upload file: one CSV code block in exactly this format, with a row for every entry whose Action is REPLACE or FILL and no other entries, using DraftKings player IDs (numbers only) in the nine player columns:',
+      '', ...upload, '',
+      '6. What you could not verify (player availability, contest details), your validation results, and a verdict of GO, GO WITH WARNINGS or NO-GO.',
+      '',
+      '**Rules you may not break:**', ...shared.slice(0, 1),
+      '- Give every entry a row in the lineup-to-entry map. Do not stop early or write "and so on". Continue in a second CSV block if needed, then state how many rows you returned in the map and in the upload file.',
+      '- When you use a lineup from section 5 or 6, copy its IDs in the slot order shown. When you build a new one, ' + newLineup,
+      '- Do not repeat a lineup inside the same tournament contest.', ...shared.slice(1), '');
+  } else if (mode === 'audit') {
+    out.push('**Do this:** audit the portfolio that is on DraftKings now. Do not propose replacement lineups and do not return an upload file. The owner wants to understand what they hold before deciding what to change.', '',
+      '**Your answer must include, in this order:**',
+      '1. What the portfolio is betting on: the game stories behind the lineups in section 5, grouped, with a "Wins if..." line for each distinct tournament build.',
+      '2. Exposure by contest group, using the figures in section 5: the biggest player, player-pair and QB/game-stack positions with counts, percentages and dollars. Start with any player named in section 2, then surface larger concentrations. For each flagged player, how many lineups fade them and how many fade all of them.',
+      '3. Fit to contest: whether each cash entry holds a cash-style lineup, and whether tournament lineups suit the size and payout shape of their contests as far as the contest names show.',
+      '4. Problems: duplicate lineups inside a tournament, salary left unused, FLEX not holding the latest kickoff, players marked OUT, and anything that breaks the playbook.',
+      '5. The entries most worth rebuilding, in order, and why. Stop there.',
+      '6. What you could not verify.',
+      '',
+      '**Rules you may not break:**', ...shared.slice(0, 1),
+      '- The lineups on DraftKings have not been checked or optimized. Do not assume they are good.',
+      ...shared.slice(1), '');
+  } else {
+    out.push('**Do this:** choose a lineup for every entry marked EMPTY in section 4, using the candidate lineups in section 6, following the playbook in section 3. Leave entries marked KEEP exactly as they are. Then return a DraftKings upload file.', '',
+      '**Your answer must be:**',
+      '1. One CSV code block in exactly this format, one row per EMPTY entry, with DraftKings player IDs (numbers only) in the nine player columns:',
+      '', ...upload, '',
+      '2. Then a short report: which lineup label went to which contests and why, a "Wins if:" line for each distinct tournament lineup, the share of tournament entries for your ten most-used players (counting KEEP entries), what you could not verify, and a verdict of GO, GO WITH WARNINGS or NO-GO.',
+      '',
+      '**Rules you may not break:**', shared[0] + ' Leave KEEP entries out of the upload file.',
+      '- Give a row for every EMPTY entry (' + empty + ' of them). Do not stop early or write "and so on". Continue in a second CSV block if needed, then state how many rows you returned.',
+      '- Use the lineups in section 6 by copying their IDs in the slot order shown. Build a new lineup only when none fits, and then ' + newLineup,
+      '- Put one best cash lineup in every cash entry (double-ups, 50/50s, head-to-heads). Do not repeat a lineup inside the same tournament contest, counting the KEEP entries already there.',
+      ...shared.slice(1), '');
+  }
+  out.push('## 2. Directions from the owner', '', notes ? 'These come first. Any player named here is a flagged player.\n\n' + notes : 'None given.', '');
   out.push('## 3. Playbook', '', playbook ? 'This playbook governs your choices. Where it asks for inputs this document does not contain, say so and fall back as it directs.\n\n' + playbook : 'No playbook is included. If the owner attaches one, it governs.', '');
+  const legend = {
+    rebuild: 'EMPTY needs a lineup. REVIEW holds a lineup on DraftKings that is open to replacement. PROTECTED holds a lineup the owner wants left alone.',
+    fill: 'EMPTY needs a lineup. KEEP already has one on DraftKings; leave it alone.',
+    audit: 'CURRENT holds a lineup on DraftKings. EMPTY has none.'}[mode];
   out.push('## 4. Contests and entries', '', 'Type is read from the contest name. "Field at least" is prize pool divided by entry fee, a rough floor; blank means unknown.', '',
     csv([['Contest ID', 'Contest Name', 'Type', 'Entry Fee', 'Your entries', 'Entry limit', 'Field at least'],
       ...[...contests.values()].sort((a, b) => b.fee - a.fee).map(c => [c.id, c.name, contestKind(c.name), entries.find(e => e.contestId === c.id).fee, c.n, contestLimit(c.name) ?? '', fieldFloor(c.name, c.fee) ?? ''])]), '',
-    'Every entry gets a lineup from you. EMPTY has none yet. REPLACE holds a lineup on DraftKings now, shown for reference only; it is not a recommendation.', '',
-    csv([['Entry ID', 'Contest Name', 'Contest ID', 'Entry Fee', 'Status', 'Lineup already on DraftKings'],
-      ...entries.map(entry => [entry.id, entry.contest, entry.contestId, entry.fee, hasLineup(entry) ? 'REPLACE' : 'EMPTY', hasLineup(entry) ? entry.current.filter(Boolean).join(' | ') : ''])]), '');
-  out.push('## 5. Lineups the owner built', '', saved.length ? 'The owner\'s best lineups from the Optimizer, highest projection first. "Built as" is the mode they were built in. Floor and ceiling are the nine player values added up, not odds. The last column is the nine DraftKings IDs in upload order (QB, RB, RB, WR, WR, WR, TE, FLEX, DST).' : 'None were found. Build lineups from the player pool, checking each one against the roster and salary rules.', '');
+    legend + ' "Lineup now" is a label from section 5.', '',
+    csv([['Entry ID', 'Contest Name', 'Contest ID', 'Entry Fee', 'Type', 'Status', 'Lineup now'],
+      ...entries.map(entry => [entry.id, entry.contest, entry.contestId, entry.fee, contestKind(entry.contest), statusOf(entry), labelOf.get(entry.id) || ''])]), '');
+  out.push('## 5. Lineups on DraftKings now, and their exposure', '');
+  if (!current.length) out.push('No entry holds a lineup yet.', '');
+  else {
+    out.push('Read from the entries file. These lineups have not been checked or optimized by this site. Projections are today\'s site numbers plus the owner\'s edits. Floor and ceiling are the nine player values added up, not odds. "Locked" lists players whose game has started.', '',
+      csv([['Label', 'Entries', 'Proj', 'Floor', 'Ceiling', 'Salary', 'Own sum %', 'Shape', 'Flags', ...SLOTS, 'IDs in upload order', 'Locked'],
+        ...current.map(c => [c.label, c.entries.length, c.f ? c.f.projection.toFixed(1) : '', c.f ? c.f.floor.toFixed(1) : '', c.f ? c.f.ceiling.toFixed(1) : '', c.f ? c.f.salary : '', c.f ? c.f.own.toFixed(0) : '',
+          c.f ? c.f.shape : '', c.f ? c.f.flags.join('; ') : 'Has a player who is not in the pool', ...c.cells.map((cell, i) => (byId.get(c.ids[i]) || {}).name || cellName(cell)), c.ids.join(','), c.locked.join('; ')])]), '');
+    const groups = exposureGroups(current);
+    const pct = (a, b) => b ? (a / b * 100).toFixed(1) : '';
+    const rows = (g, map, limit) => [...map.entries()].sort((a, b) => b[1].n - a[1].n || b[1].fees - a[1].fees).slice(0, limit)
+      .map(([key, v]) => [g.name, key, v.n, pct(v.n, g.n), v.fees.toFixed(2), pct(v.fees, g.fees)]);
+    const head = what => ['Contest group', what, 'Entries', '% of filled entries', 'Entry fees ($)', '% of fees'];
+    out.push('**Exposure before any change.** Computed by this site from the lineups above. "Entries" is filled entries holding the item; "Entry fees" is what those entries cost. Filled entries per group: ' +
+      groups.map(g => g.name + ' ' + g.n + ' ($' + g.fees.toFixed(2) + ')').join(', ') + '.', '',
+      'Players:', '', csv([head('Player'), ...groups.flatMap(g => rows(g, g.players, 60))]), '',
+      'QB and game stacks:', '', csv([head('QB | stack | game'), ...groups.flatMap(g => rows(g, g.stacks, 40))]), '',
+      'Player pairs (the 25 largest in each group):', '', csv([head('Pair'), ...groups.flatMap(g => rows(g, g.pairs, 25))]), '');
+  }
+  out.push('## 6. Candidate lineups the owner built', '', saved.length ? 'The owner\'s best lineups from the Optimizer, highest projection first. "Built as" is the mode they were built in. Floor and ceiling are the nine player values added up, not odds. The last column is the nine DraftKings IDs in upload order (QB, RB, RB, WR, WR, WR, TE, FLEX, DST).' : 'None were found. Build lineups from the player pool, checking each one against the roster and salary rules.', '');
   if (saved.length) out.push(csv([['Label', 'Built as', 'Proj', 'Floor', 'Ceiling', 'Salary', 'Own sum %', 'Shape', 'Flags', ...SLOTS, 'IDs in upload order'],
     ...saved.map(c => [c.label, c.kind === 'cash' ? 'cash' : 'tournament', c.f.projection.toFixed(1), c.f.floor.toFixed(1), c.f.ceiling.toFixed(1), c.f.salary, c.f.own.toFixed(0), c.f.shape, c.f.flags.join('; '), ...c.f.line.map(p => p.name), c.ids.join(',')])]), '');
   const pool = players.filter(p => Number(p.projection) > 0 || p.action).sort((a, b) => POSITIONS.indexOf(a.pos) - POSITIONS.indexOf(b.pos) || Number(b.projection) - Number(a.projection));
-  out.push('## 6. Player pool', '', 'Salaries, IDs, teams and kickoffs are from the owner\'s DraftKings file. Projections and ownership are the site defaults (last updated ' + stamp + ') plus the owner\'s edits, marked EDITED. ' + (slate.note || '') + ' Floor and ceiling marked SET come from the site or the owner; any marked DEFAULT are placeholders at 50% below and above the projection. This is point projections only (playbook model level D).', '',
+  out.push('## 7. Player pool', '', 'Salaries, IDs, teams and kickoffs are from the owner\'s DraftKings file. Projections and ownership are the site defaults (last updated ' + stamp + ') plus the owner\'s edits, marked EDITED. ' + (slate.note || '') + ' Floor and ceiling marked SET come from the site or the owner; any marked DEFAULT are placeholders at 50% below and above the projection. This is point projections only (playbook model level D).', '',
     csv([['ID', 'Name', 'Pos', 'Team', 'Opp', 'Kickoff', 'Salary', 'Proj', 'Floor', 'Ceiling', 'Range', 'Own %', 'Edited', 'Status', 'Max %'],
       ...pool.map(p => { const b = base.get(p.id); return [p.id, p.name, p.pos, p.team, (p.home ? 'vs ' : '@ ') + p.opp, p.when, p.salary, p.projection, floorOf(p), ceilOf(p), p.floor != null || p.ceiling != null ? 'SET' : 'DEFAULT', p.ownership ?? '',
         b && isEdited(p, b) ? 'EDITED' : '', p.action === 'lock' ? 'LOCK' : p.action === 'out' ? 'OUT' : '', p.cap ?? '']; })]), '');
-  return {text: out.join('\n'), lineups: saved.length, fill: entries.length, replaced: filled};
+  return {text: out.join('\n'), lineups: saved.length, empty, open, kept, filled, modeName};
+}
+function docStatus(doc, verb) {
+  const what = mode === 'rebuild' ? doc.open + ' entries open to review, ' + doc.kept + ' protected, ' + doc.empty + ' empty'
+    : mode === 'audit' ? doc.filled + ' filled entries to audit' : doc.empty + ' entries to fill, ' + doc.filled + ' left as they are';
+  return verb + ' (' + doc.modeName + '): ' + what + ', ' + doc.lineups + ' candidate lineups, ' + (playbook ? 'playbook included.' : 'no playbook.');
 }
 $('make').onclick = () => {
   const doc = buildDocument();
   download(doc.text, 'dfs-ai-document.md', 'text/markdown');
-  $('status').textContent = 'Downloaded dfs-ai-document.md: ' + doc.fill + ' entries to fill' + (doc.replaced ? ' (' + doc.replaced + ' replacing a lineup already on DraftKings)' : '') + ', ' + doc.lineups + ' lineups, ' + (playbook ? 'playbook included.' : 'no playbook.');
+  $('status').textContent = docStatus(doc, 'Downloaded dfs-ai-document.md');
 };
-$('copyDoc').onclick = () => copy(buildDocument().text, 'Document');
+$('copyDoc').onclick = () => { const doc = buildDocument(); copy(doc.text, 'Document'); $('status').textContent = docStatus(doc, 'Copied'); };
 window.addEventListener('focus', render);
 render();
 </script>
