@@ -256,6 +256,9 @@ td.sum{white-space:normal;min-width:260px}
 .ticks li.wait::before{content:"\2022";color:var(--muted)}
 .ticks li.no{color:var(--danger)}
 .ticks li.no a{color:inherit}
+.flexbox{border:1px solid var(--mark);background:var(--mark-soft);border-radius:10px;padding:12px 14px;margin-top:14px}
+.flexbox ul{margin:8px 0 0;padding-left:20px;display:grid;gap:4px}
+.flexbox summary{cursor:pointer}
 .steps{margin:0 0 16px;padding-left:22px;display:grid;gap:6px}
 .steps li{padding-left:4px}
 .modes{border:1px solid var(--line);border-radius:10px;padding:10px 14px 12px;margin:14px 0 0;display:grid;gap:10px}
@@ -308,6 +311,13 @@ td.sum{white-space:normal;min-width:260px}
         <span>Include the best <input id="topN" type="number" min="1" max="150" step="1" value="20" style="width:64px" aria-label="How many of each type"> of each type, cash and tournament.</span></label>
       <label><input type="checkbox" id="ownerMode"><b>Also critique the playbook</b><span>Adds a section proposing changes to the playbook's rules. Leave this off unless you maintain the playbook.</span></label>
     </fieldset>
+    <div class="flexbox" id="flexBox" hidden>
+      <b id="flexTitle"></b>
+      <p class="small" style="margin:4px 0 8px">A later-starting player can move to FLEX in these lineups. No players, salary or projection change; it only leaves you a swap if late news breaks.</p>
+      <details><summary class="small">Show the swaps</summary><ul class="small" id="flexList"></ul></details>
+      <div style="margin-top:10px"><button class="btn" id="flexMake" type="button">Download the FLEX fix for DraftKings</button></div>
+      <p class="status" id="flexStatus" role="status"></p>
+    </div>
     <label class="small" for="notes" style="display:block;margin-top:14px;font-weight:600">What do you want the critique to focus on? <span class="muted" style="font-weight:400">Optional</span></label>
     <textarea id="notes" rows="2" placeholder="For example: am I too heavy on Dak, and are my cheap receivers good enough?"></textarea>
     <p class="small" id="countLine" style="margin-top:12px;font-weight:600"></p>
@@ -1114,6 +1124,47 @@ const cellName = cell => (cell || '').replace(/\s*\(.*$/, '').trim();
 const savedLineups = () => loadPool().filter(item => usable(item.ids));
 const topCount = () => { const n = Number($('topN').value); return n >= 1 && n <= 150 ? Math.floor(n) : 20; };
 
+// FLEX keeps a late swap open when it holds the latest kickoff among players at the FLEX player's position.
+// Returns the same nine players with that later player moved to FLEX, or null when nothing can move.
+function flexFix(ids, cells) {
+  const line = ids.map(id => byId.get(id));
+  if (line.length !== 9 || line.some(p => !p)) return null;
+  const flex = line[7], locked = i => !!cells && /locked/i.test(cells[i] || '');
+  if (!(flex.start > 0) || locked(7)) return null;
+  let best = -1;
+  for (let i = 1; i <= 6; i++) {
+    const p = line[i];
+    if (p.pos === flex.pos && p.start > flex.start && !locked(i) && (best < 0 || p.start > line[best].start)) best = i;
+  }
+  if (best < 0) return null;
+  const fixed = ids.slice();
+  fixed[7] = ids[best]; fixed[best] = ids[7];
+  return {ids: fixed, toFlex: line[best], fromFlex: flex, slot: SLOTS[best]};
+}
+const flexEntries = () => !entries || problem ? [] : entries.filter(hasLineup).map(entry => ({entry, fix: flexFix(entry.current.map(cellId), entry.current)})).filter(row => row.fix);
+function flexCsv() {
+  return [csvLine([...ENTRY_HEAD, ...SLOTS]), ...flexEntries().map(({entry, fix}) => csvLine([entry.id, entry.contest, entry.contestId, entry.fee, ...fix.ids]))].join('\r\n') + '\r\n';
+}
+function renderFlex() {
+  const rows = flexEntries();
+  $('flexBox').hidden = !rows.length;
+  if (!rows.length) return;
+  const byLineup = new Map();
+  for (const {entry, fix} of rows) {
+    const key = fix.ids.join(',');
+    if (!byLineup.has(key)) byLineup.set(key, {fix, n: 0});
+    byLineup.get(key).n++;
+  }
+  $('flexTitle').textContent = rows.length + (rows.length === 1 ? ' entry' : ' entries') + ' can keep a late swap open';
+  $('flexList').innerHTML = [...byLineup.values()].sort((a, b) => b.n - a.n).map(({fix, n}) =>
+    '<li>Move <b>' + esc(fix.toFlex.name) + '</b> (' + esc(fix.toFlex.when) + ') to FLEX and <b>' + esc(fix.fromFlex.name) + '</b> (' + esc(fix.fromFlex.when) + ') to ' + fix.slot + ' <span class="muted">' + n + (n === 1 ? ' entry' : ' entries') + '</span></li>').join('');
+}
+$('flexMake').onclick = () => {
+  const n = flexEntries().length;
+  download(flexCsv(), 'DKEntries-flex-fix.csv', 'text/csv');
+  $('flexStatus').textContent = 'Downloaded DKEntries-flex-fix.csv with ' + n + (n === 1 ? ' entry' : ' entries') + '. On DraftKings: Lineups, then Edit entries, then upload it. This page cannot confirm DraftKings accepted it.';
+};
+
 // The lineups to critique: the best saved Optimizer lineups of each type, plus each distinct lineup in the entries file.
 function gather() {
   const map = new Map(), list = [];
@@ -1122,7 +1173,7 @@ function gather() {
       if (!hasLineup(entry)) continue;
       const ids = entry.current.map(cellId), key = ids.join(',');
       if (!map.has(key)) {
-        const item = {ids, names: entry.current.map((cell, i) => (byId.get(ids[i]) || {}).name || cellName(cell)), f: describe(ids), entries: [], built: '',
+        const item = {ids, names: entry.current.map((cell, i) => (byId.get(ids[i]) || {}).name || cellName(cell)), f: describe(ids), entries: [], built: '', flex: flexFix(ids, entry.current),
           locked: entry.current.filter(cell => /locked/i.test(cell || '')).map(cellName)};
         map.set(key, item); list.push(item);
       }
@@ -1135,7 +1186,7 @@ function gather() {
       for (const item of saved.filter(s => (s.kind === 'cash' ? 'cash' : 'gpp') === kind).sort((a, b) => b.f.projection - a.f.projection).slice(0, n)) {
         const key = item.ids.join(','), built = kind === 'cash' ? 'cash' : 'tournament';
         if (map.has(key)) { map.get(key).built = built; continue; }
-        const added = {ids: item.ids, names: item.f.line.map(p => p.name), f: item.f, entries: [], built, locked: []};
+        const added = {ids: item.ids, names: item.f.line.map(p => p.name), f: item.f, entries: [], built, locked: [], flex: flexFix(item.ids)};
         map.set(key, added); list.push(added);
       }
     }
@@ -1172,6 +1223,7 @@ function render() {
   $('drop').classList.toggle('done', !!entries && !problem);
   $('dropTitle').textContent = entries && !problem ? 'Entries loaded. Click to choose a different file.' : 'Add your DraftKings entries file';
   $('dropHint').textContent = entries && !problem ? fileName : 'Click to choose it, or drag it here. On DraftKings: Lineups, then Edit entries, then download the CSV.';
+  renderFlex();
   const list = gather();
   $('countLine').textContent = list.length ? list.length + (list.length === 1 ? ' lineup' : ' lineups') + ' will be reviewed.' : 'Nothing to review yet.';
   $('make').disabled = $('copyDoc').disabled = !list.length;
@@ -1302,6 +1354,7 @@ function buildDocument() {
       '- Contest type and entry limit are read from the contest name, and "Field at least" is prize pool divided by entry fee, a rough floor. Payout tables and advancement rules are not included.']
       : ['- No entries file was supplied, so there are no contests or entry IDs. Judge each lineup for the contest type it was built for.']),
     ...(built.length ? ['- Lineups labelled S (' + built.length + ' of them) are extra lineups the player built and has not entered. Use them as candidates when a change is needed. Do not critique them as a group.'] : []),
+    ...(list.some(c => c.flex) ? ['- ' + list.filter(c => c.flex).length + ' lineups in section 5 are flagged "FLEX should hold": a later-starting player can move to FLEX with no change in players. That is slot order only. Apply it to any lineup you keep or revise, and do not count it as one of your seven changes.'] : []),
     '- Lineup floor and ceiling in section 5 are the nine player values added up. That is a rough proxy: player outcomes move together.',
     '- Ownership in section 7 is an estimate. Any duplication figure you give is your own estimate and must be labelled as one.',
     '- Section 7 has no injury or availability data. The Setting column holds only the player\'s own LOCK and OUT choices; blank means no choice was made, not that the player is healthy.',
@@ -1326,7 +1379,7 @@ function buildDocument() {
   out.push('## 5. Lineups', '', 'Projections are today\'s site numbers plus the owner\'s edits. Floor and ceiling are the nine player values added up: a proxy, not odds and not a modeled lineup ceiling. The last column is the nine DraftKings IDs in slot order (QB, RB, RB, WR, WR, WR, TE, FLEX, DST).', '',
     csv([['Label', 'Entered in', 'Entries', 'Built as', 'Proj', 'Floor', 'Ceiling', 'Salary', 'Own sum %', 'Shape', 'Flags', ...SLOTS, 'Locked', 'IDs in slot order'],
       ...list.map(c => [c.label, whereOf(c), c.entries.length || '', c.built, c.f ? c.f.projection.toFixed(1) : '', c.f ? c.f.floor.toFixed(1) : '', c.f ? c.f.ceiling.toFixed(1) : '', c.f ? c.f.salary : '', c.f ? c.f.own.toFixed(0) : '',
-        c.f ? c.f.shape : '', c.f ? c.f.flags.join('; ') : 'Has a player who is not in the pool', ...c.names, c.locked.join('; '), c.ids.join(',')])]), '');
+        c.f ? c.f.shape : '', c.f ? [...c.f.flags, ...(c.flex ? ['FLEX should hold ' + c.flex.toFlex.name + ' (later kickoff); swap with ' + c.flex.fromFlex.name] : [])].join('; ') : 'Has a player who is not in the pool', ...c.names, c.locked.join('; '), c.ids.join(',')])]), '');
   out.push('## 6. Exposure before any change', '');
   if (filledEntries.length) {
     const groups = exposureGroups(onDk);
