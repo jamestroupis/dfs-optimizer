@@ -1276,7 +1276,19 @@ function playersInText(text) {
     starts[n] = new Set(); let at = 0;
     for (const w of plain(line).split(' ')) { starts[n].add(at); at += w.length; }
   });
-  const nearSalary = (p, line) => [line - 1, line, line + 1, line + 2].some(n => (salaries[n] || []).includes(p.salary));
+  // DraftKings lists each player as "RB J. Cook III", then the game on the next line, with salaries in their own column.
+  // The reader often returns that salary column as a separate run of lines, so pair the salaries with the player rows by order.
+  const rowLines = [], allSalaries = [];
+  lines.forEach((line, n) => {
+    if (/^\s*(QB|RB|WR|TE|DST|FLEX)\b\s+\S/i.test(line)) rowLines.push(n);
+    for (const m of line.matchAll(/\$\s?(\d{1,2})[,.]?(\d{3})\b/g)) allSalaries.push(Number(m[1] + m[2]));
+  });
+  const rowSalary = new Map();
+  if (rowLines.length && rowLines.length === allSalaries.length) rowLines.forEach((n, k) => rowSalary.set(n, allSalaries[k]));
+  const nearSalary = (p, line) => rowSalary.get(line) === p.salary || [line - 1, line, line + 1, line + 2].some(n => (salaries[n] || []).includes(p.salary));
+  // The position printed just before the name, and the player's game on the same or next two lines.
+  const posBefore = (p, i) => i > 0 && words[i - 1].line === words[i].line && words[i - 1].w === p.pos.toLowerCase();
+  const gameNear = (p, line) => { const teams = plain(String(p.game).replace('@', ' ')).split(' '); return [line, line + 1, line + 2].some(n => { const have = plain(lines[n] || '').split(' '); return teams.every(team => have.includes(team)); }); };
   // How many slate players share an initial and last name, e.g. "c lamb".
   const short = p => { const w = plain(p.name).split(' '); return w.length > 1 ? w[0][0] + ' ' + w.slice(1).join(' ') : ''; };
   const shortCount = new Map();
@@ -1302,10 +1314,11 @@ function playersInText(text) {
         if (seen[0] === whole[0]) dist = Math.min(dist, editDistance(seen, whole));
       }
       if (dist > allow) continue;
-      const salary = nearSalary(p, words[i].line);
+      const salary = nearSalary(p, words[i].line), spot = posBefore(p, i), game = gameNear(p, words[i].line);
       if (p.pos === 'DST' && dist) continue;
-      if (abbr && !salary && shortCount.get(short(p)) !== 1) continue;
-      hits.push({p, at: i, span: want.length, score: dist * 4 + (abbr ? 2 : 0) + (salary ? 0 : 1) + (Number(p.projection) > 0 ? 0 : .5)});
+      // An initial alone is not enough: it needs the salary, or the position and game, or to be the only such name on the slate.
+      if (abbr && !salary && !(spot && game) && shortCount.get(short(p)) !== 1) continue;
+      hits.push({p, at: i, span: want.length, score: dist * 4 + (abbr ? 2 : 0) + (salary ? 0 : 1) + (spot ? 0 : .6) + (game ? 0 : .6) + (Number(p.projection) > 0 ? 0 : .5)});
     }
     // Names the reader ran together or split oddly ("CeeDeeLamb", "Cee Dee Lamb"): look for the letters with the spaces taken out.
     if (p.pos !== 'DST' && whole.length >= 8) glued.forEach((line, n) => {
