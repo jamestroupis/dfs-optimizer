@@ -216,7 +216,8 @@ tr.assigned td{background:var(--accent-soft)}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
-.nav{display:flex;gap:6px;margin-top:14px}
+.nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+@media (max-width:520px){.nav{gap:2px}.nav a{font-size:13.5px;padding:8px 9px;white-space:nowrap}}
 .nav a{font:700 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;color:var(--band-muted);padding:9px 14px;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:0}
 .nav a:hover{color:var(--band-ink)}
 .nav a[aria-current="page"]{background:var(--bg);color:var(--ink)}
@@ -280,7 +281,7 @@ td.sum{white-space:normal;min-width:260px}
     <p class="slate">Add your DraftKings entries file. Get one document to hand to an AI.</p>
     <p class="slate" id="slateLine"></p>
     <p class="slate small" id="sourceLine" style="max-width:80ch"></p>
-    <nav class="nav" aria-label="Tools"><a href="../">Optimizer</a><a href="./" aria-current="page">Lineup Setup</a><a href="../critique/">Critique</a></nav>
+    <nav class="nav" aria-label="Tools"><a href="../">Optimizer</a><a href="./" aria-current="page">Lineup Setup</a><a href="../critique/">Critique</a><a href="../rate/">Rate My Lineup</a></nav>
   </div>
   <p class="private"><strong>Runs entirely in your browser.</strong>Your DraftKings files and projections never leave this device.</p>
 </div><div class="stripe"></div></header>
