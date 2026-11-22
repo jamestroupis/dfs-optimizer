@@ -1034,8 +1034,14 @@ function describe(ids) {
   if (salary < 48000) flags.push('Under $48,000');
   else if (50000 - salary > 500) flags.push(money(50000 - salary) + ' unused');
   if (facing.length) flags.push('DST faces ' + facing.map(p => p.name).join(', '));
+  // Two or more pass catchers from one team without their quarterback: a concentrated passing-game bet the lineup may not intend.
+  const loose = [];
+  for (const team of new Set(line.filter(p => p.pos === 'WR' || p.pos === 'TE').map(p => p.team))) {
+    const group = line.filter((p, i) => i > 0 && p.team === team && (p.pos === 'WR' || p.pos === 'TE'));
+    if (team !== qb.team && group.length > 1) { loose.push({team, group}); flags.push(group.length + ' ' + team + ' pass catchers without their QB (' + group.map(p => p.name).join(', ') + ')'); }
+  }
   const shape = qb.team + ' ' + (mates.length ? 'QB + ' + mates.length : 'QB alone') + (backs.length ? ', ' + backs.length + ' bring-back' + (backs.length > 1 ? 's' : '') + ' (' + qb.opp + ')' : ', no bring-back');
-  return {line, qb, mates, backs, salary, projection, floor, ceiling, own, flags, shape};
+  return {line, qb, mates, backs, loose, salary, projection, floor, ceiling, own, flags, shape};
 }
 function lineupRows(f) {
   return f.line.map((p, i) => {
@@ -1503,7 +1509,10 @@ function buildDocument(bench) {
       ? '**Against the best lineup:** one sentence: how many projected points this lineup is behind ' + top.label + ' (' + top.f.projection.toFixed(1) + ' points), the highest-projected lineup this week, and where most of that gap comes from. In a cash game this gap is the main thing the grade rests on, together with how secure each player\'s role is.'
       : '**Against the best lineup:** one sentence: how many projected points this lineup is behind ' + top.label + ' (' + top.f.projection.toFixed(1) + ' points), and whether that matters. In a tournament it often does not: the grade rests on whether the lineup can finish first. That means players whose big games happen together, a real ceiling, and enough players the field is not using for a field of this size.' + (size ? '' : ' The field size is unknown, so say in a few words how the grade would change between a small field and a huge one.')),
     '',
-    '**Swap:** the one or two changes that help most, most important first. Never more than two. If none is worth making, say "No swap needed." Each one is a single line: player out, player in, the change in salary and in projection, the new salary total, and what it buys in this contest. Every swap must leave the lineup legal and at or under $50,000' + (cash ? '.' : ', and must not break a stack that is doing its job.'), '',
+    '**Swap:** the one or two changes that help most, most important first. Never more than two. If none is worth making, say "No swap needed." Each one is a single line: player out, player in, the change in salary and in projection, the new salary total, and what it buys in this contest. Every swap must leave the lineup legal and at or under $50,000' + (cash ? '.' : ', and must not break a stack that is doing its job.') +
+      ' Judge each swap by the combined game-script dependency of the lineup it leaves behind, not only by the projected points it adds: work out what the revised lineup now needs to happen on the field, and if you give two swaps, judge them together. ' +
+      (cash ? 'This is a cash game, so favor strong individual workloads. Do not recommend a swap that leaves two or more pass catchers from one team in the lineup, with or without their quarterback, unless you say in that line why the concentration is right for this contest; if a comparable player with an independent workload exists, recommend him instead. The same applies to the lineup as submitted: if it already carries a concentrated passing-game bet, name it in the grade line.'
+        : 'If a swap leaves two or more pass catchers from one team without their quarterback, say in that line why that concentration fits this contest and why the quarterback is not the better way to pay for that outcome.'), '',
     '**Keep:** one line on the best thing about this lineup.', '',
     (cash ? '' : '**Wins if:** one sentence on what has to happen on the field for this lineup to finish first.\n'),
     '**Check before lock:** one or two bullets on what the player must confirm themselves, such as a player\'s injury status.', '',
@@ -1517,7 +1526,7 @@ function buildDocument(bench) {
     '- If the screenshot shows a contest name that plainly disagrees with section 2, say so in one line and rate the lineup for the contest shown.', '');
   out.push('## 2. The contest', '', contestLine(), '',
     (cash
-      ? 'What that asks of a lineup: the most projected points from players with dependable roles. No stack is needed. A popular player should not be dropped just for being popular.'
+      ? 'What that asks of a lineup: the most projected points from players with dependable roles, each standing on his own workload. No stack is needed, and a concentrated bet on one passing game is a risk to justify, not a feature. A popular player should not be dropped just for being popular.'
       : 'What that asks of a lineup: a believable way to finish first. Usually a quarterback with two of his pass catchers and a player from the other team in that game, though that is a preference and not a requirement. ' +
         (size === 'small' ? 'In a field this small, keep projection strong and avoid needless longshots; one or two less popular players is enough.'
           : size === 'medium' ? 'In a field this size, correlation and a different ceiling from the crowd matter more than squeezing out the last projected point.'
@@ -1540,8 +1549,10 @@ function buildDocument(bench) {
   else out.push('In the attached screenshot.', '');
   out.push('## 4. Benchmark lineups', '',
     'Built by this site for this contest type from the projections in section 5. Each is the best lineup the site could find for the rule in "Built as". ' + top.label + ' is the one to measure against. Floor and ceiling are the nine player values added up: a rough guide, not odds.', '',
-    csv([['Label', 'Built as', 'Proj', 'Floor', 'Ceiling', 'Salary', 'Own sum %', 'Shape', ...SLOTS],
-      ...bench.map(b => [b.label, b.what, b.f.projection.toFixed(1), b.f.floor.toFixed(1), b.f.ceiling.toFixed(1), b.f.salary, b.f.own.toFixed(0), b.f.shape, ...b.f.line.map(p => p.name)])]), '');
+    csv([['Label', 'Built as', 'Proj', 'Floor', 'Ceiling', 'Salary', 'Own sum %', 'Shape', 'Flags', ...SLOTS],
+      ...bench.map(b => [b.label, b.what, b.f.projection.toFixed(1), b.f.floor.toFixed(1), b.f.ceiling.toFixed(1), b.f.salary, b.f.own.toFixed(0), b.f.shape, b.f.flags.join('; '), ...b.f.line.map(p => p.name)])]), '',
+    'These are the highest-scoring builds on paper, found by a search that only adds up projections. They are a yardstick, not a lineup to copy: the search does not weigh game-script dependency, so a benchmark can itself hold a quarterback with several of his pass catchers, or pass catchers without their quarterback (see Shape and Flags).' +
+    (cash ? ' Do not move the player\'s cash lineup toward a benchmark if that creates a concentrated passing-game bet.' : ''), '');
   const pool = players.filter(p => Number(p.projection) > 0 && p.action !== 'out').sort((a, b) => POSITIONS.indexOf(a.pos) - POSITIONS.indexOf(b.pos) || Number(b.projection) - Number(a.projection));
   const edited = pool.some(p => { const b = base.get(p.id); return b && isEdited(p, b); });
   out.push('## 5. Player pool', '',
