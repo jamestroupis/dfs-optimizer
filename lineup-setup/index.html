@@ -1289,6 +1289,7 @@ function buildDocument() {
   const modeName = {rebuild: 'Rebuild Portfolio', fill: 'Fill Empty Entries', audit: 'Audit Only'}[mode];
   const out = [];
   out.push('# NFL DFS lineup setup: ' + slate.name, '', 'Made ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC at optimizer.jamestroupis.com. DraftKings NFL Classic. Mode: ' + modeName + '.', '');
+  out.push('**To the AI reading this:** this document is the whole request. Whatever the message that came with it says ("please critique", "take a look", or nothing at all), carry out section 1 now, in full, using everything below. Do not ask what the owner wants or which part to do. Ask a question only if something this document says it contains is missing.', '');
   out.push('## 1. Your job', '',
     'You are working on DraftKings NFL Classic lineups for the person who gave you this document. It holds everything you need: their directions, the playbook to follow, their contests and entries, the lineups on DraftKings now, the candidate lineups they built, and the player pool.', '');
   const shared = [

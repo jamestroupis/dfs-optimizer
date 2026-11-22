@@ -1257,6 +1257,7 @@ function buildDocument() {
   const csv = rows => '```csv\n' + rows.map(csvLine).join('\n') + '\n```';
   const out = [];
   out.push('# NFL DFS lineup critique: ' + slate.name, '', 'Made ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC at optimizer.jamestroupis.com. DraftKings NFL Classic.', '');
+  out.push('**To the AI reading this:** this document is the whole request. Whatever the message that came with it says ("please critique", "take a look", or nothing at all), carry out section 1 now, in full, using everything below. Do not ask what the owner wants or which part to do. Ask a question only if something this document says it contains is missing.', '');
   out.push('## 1. Your job', '',
     'You are reviewing DraftKings NFL Classic lineups for the person who gave you this document. It holds their directions, the playbook, their contests and entries, the lineups, the exposure they carry now, and the player pool with projections and ownership.', '',
     '**The owner\'s instructions, in their words:**', '', ...CRITIQUE_BRIEF.flatMap(p => [p, '']),
