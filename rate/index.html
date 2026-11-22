@@ -374,6 +374,7 @@ textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 1
       <div class="bar" style="margin-top:8px">
         <input class="grow" id="addPlayer" list="poolNames" placeholder="Add a player by name" autocomplete="off" aria-label="Add a player by name">
         <button class="btn" id="clearLineup" type="button">Clear</button>
+        <button class="btn" id="copyRead" type="button" hidden>Copy what was read</button>
       </div>
       <datalist id="poolNames"></datalist>
       <p class="status" id="lineupStatus" role="status" style="margin-top:8px"></p>
@@ -1264,32 +1265,53 @@ function editDistance(a, b) {
   return row[b.length];
 }
 const nearly = (seen, want) => seen === want ? 0 : want.length >= 5 ? editDistance(seen, want) : 9;
-// Finds slate players named in text read from a screenshot. Returns player IDs in the order they appear.
+// Finds slate players named in text read from a screenshot. Returns hits in the order they appear.
 function playersInText(text) {
-  const lines = text.split(/\n+/), words = [], salaries = [];
+  const lines = text.split(/\n+/), words = [], salaries = [], glued = [], starts = [];
   lines.forEach((line, n) => {
     for (const w of plain(line).split(' ')) if (w) words.push({w, line: n});
     salaries[n] = (line.match(/\d{1,2}[,.]?\d{3}\b/g) || []).map(s => Number(s.replace(/\D/g, '')));
+    glued[n] = plain(line).replace(/ /g, '');
+    // Offsets in the run-together line where a word began, so "ianthomas" is not found inside "brianthomas".
+    starts[n] = new Set(); let at = 0;
+    for (const w of plain(line).split(' ')) { starts[n].add(at); at += w.length; }
   });
   const nearSalary = (p, line) => [line - 1, line, line + 1, line + 2].some(n => (salaries[n] || []).includes(p.salary));
+  // How many slate players share an initial and last name, e.g. "c lamb".
+  const short = p => { const w = plain(p.name).split(' '); return w.length > 1 ? w[0][0] + ' ' + w.slice(1).join(' ') : ''; };
+  const shortCount = new Map();
+  for (const p of players) if (p.pos !== 'DST') shortCount.set(short(p), (shortCount.get(short(p)) || 0) + 1);
+  const firstWord = [];
+  lines.forEach((_, n) => { firstWord[n] = words.findIndex(w => w.line === n); });
   const hits = [];
   for (const p of players) {
-    const want = plain(p.name).split(' ');
+    const want = plain(p.name).split(' '), whole = want.join('');
     if (!want[0]) continue;
+    const allow = whole.length >= 12 ? 2 : whole.length >= 7 ? 1 : 0;
     for (let i = 0; i + want.length <= words.length; i++) {
       let dist = 0, abbr = false;
       for (let k = 0; k < want.length && dist < 3; k++) {
         const seen = words[i + k].w;
-        // "J Allen" for Josh Allen: an initial is accepted for the first name and settled by salary.
+        // "J Allen" for Josh Allen: an initial is accepted for the first name, when salary or uniqueness settles who it is.
         if (k === 0 && want.length > 1 && seen.length === 1 && seen === want[0][0]) abbr = true;
         else dist += nearly(seen, want[k]);
       }
-      if (dist > (want.join('').length >= 9 ? 2 : 1)) continue;
+      // Letters misread across the whole name ("CeeDee Lamh"), which the word-by-word check is too strict for on short words.
+      if (dist > allow && !abbr && p.pos !== 'DST') {
+        const seen = words.slice(i, i + want.length).map(x => x.w).join('');
+        if (seen[0] === whole[0]) dist = Math.min(dist, editDistance(seen, whole));
+      }
+      if (dist > allow) continue;
       const salary = nearSalary(p, words[i].line);
       if (p.pos === 'DST' && dist) continue;
-      if (abbr && !salary) continue;
+      if (abbr && !salary && shortCount.get(short(p)) !== 1) continue;
       hits.push({p, at: i, span: want.length, score: dist * 4 + (abbr ? 2 : 0) + (salary ? 0 : 1) + (Number(p.projection) > 0 ? 0 : .5)});
     }
+    // Names the reader ran together or split oddly ("CeeDeeLamb", "Cee Dee Lamb"): look for the letters with the spaces taken out.
+    if (p.pos !== 'DST' && whole.length >= 8) glued.forEach((line, n) => {
+      const at = line.indexOf(whole);
+      if (at >= 0 && starts[n].has(at) && firstWord[n] >= 0) hits.push({p, at: firstWord[n], span: 0, line: n, score: 1 + (nearSalary(p, n) ? 0 : 1) + (Number(p.projection) > 0 ? 0 : .5)});
+    });
   }
   hits.sort((a, b) => a.score - b.score || b.span - a.span);
   const taken = new Set(), used = new Set(), found = [];
@@ -1302,29 +1324,43 @@ function playersInText(text) {
     used.add(hit.p.id);
     found.push(hit);
   }
-  return found.sort((a, b) => a.at - b.at).map(hit => hit.p.id);
+  return found.sort((a, b) => a.at - b.at).map(hit => ({id: hit.p.id, where: words[hit.at] ? words[hit.at].line / Math.max(1, lines.length) : 1}));
 }
 // Screenshots are often white text on black, which reads poorly. Enlarge small ones and flip dark ones to dark-on-light.
-async function prepareImage(file) {
+// mode 'gray' keeps shades; 'ink' forces pure black and white around each neighbourhood, which copes with coloured rows and photos.
+async function loadImage(file) {
   const url = URL.createObjectURL(file);
-  try {
-    const image = new Image();
-    image.src = url;
-    await image.decode();
-    const scale = Math.min(3, Math.max(1, 1500 / image.naturalWidth)), limit = 4200 / (image.naturalHeight * scale);
-    const k = scale * Math.min(1, limit);
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(image.naturalWidth * k);
-    canvas.height = Math.round(image.naturalHeight * k);
-    const ctx = canvas.getContext('2d', {willReadFrequently: true});
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height), px = data.data;
-    let sum = 0;
-    for (let i = 0; i < px.length; i += 4) { const g = px[i] * .299 + px[i + 1] * .587 + px[i + 2] * .114; px[i] = px[i + 1] = px[i + 2] = g; sum += g; }
-    if (sum / (px.length / 4) < 120) for (let i = 0; i < px.length; i += 4) px[i] = px[i + 1] = px[i + 2] = 255 - px[i];
-    ctx.putImageData(data, 0, 0);
-    return canvas;
-  } finally { URL.revokeObjectURL(url); }
+  try { const image = new Image(); image.src = url; await image.decode(); return image; }
+  finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+}
+function prepareImage(image, mode, zoom) {
+  const scale = Math.min(3.5, Math.max(1, zoom / image.naturalWidth)), limit = 5200 / (image.naturalHeight * scale);
+  const k = scale * Math.min(1, limit);
+  const canvas = document.createElement('canvas');
+  const w = canvas.width = Math.round(image.naturalWidth * k), h = canvas.height = Math.round(image.naturalHeight * k);
+  const ctx = canvas.getContext('2d', {willReadFrequently: true});
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(image, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h), px = data.data, gray = new Float32Array(w * h);
+  let sum = 0;
+  for (let i = 0, j = 0; i < px.length; i += 4, j++) sum += gray[j] = px[i] * .299 + px[i + 1] * .587 + px[i + 2] * .114;
+  const dark = sum / gray.length < 120;
+  if (mode === 'gray') {
+    for (let j = 0, i = 0; j < gray.length; j++, i += 4) px[i] = px[i + 1] = px[i + 2] = dark ? 255 - gray[j] : gray[j];
+  } else {
+    // Compare each pixel with the average of the block around it, so text stands out whatever the row's background colour is.
+    const cell = Math.max(16, Math.round(w / 40)), cols = Math.ceil(w / cell), rows = Math.ceil(h / cell), mean = new Float32Array(cols * rows), count = new Float32Array(cols * rows);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const c = Math.floor(y / cell) * cols + Math.floor(x / cell); mean[c] += gray[y * w + x]; count[c]++; }
+    for (let c = 0; c < mean.length; c++) mean[c] /= count[c] || 1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const m = mean[Math.floor(y / cell) * cols + Math.floor(x / cell)], g = gray[y * w + x], i = (y * w + x) * 4;
+      // Text is the minority shade in its block: lighter than a dark block, darker than a light one.
+      const ink = m < 128 ? g > m + 45 : g < m - 45;
+      px[i] = px[i + 1] = px[i + 2] = ink ? 0 : 255;
+    }
+  }
+  ctx.putImageData(data, 0, 0);
+  return canvas;
 }
 let reader = null;
 function loadReader() {
@@ -1346,11 +1382,29 @@ async function readShot(file) {
   reading = true; shotName = file.name; shotNote = '';
   render();
   try {
-    const [canvas, worker] = await Promise.all([prepareImage(file), loadReader()]);
-    const {data} = await worker.recognize(canvas);
-    lineup = playersInText(data.text).slice(0, 12);
-    window.__shotText = data.text;
-    shotNote = lineup.length ? '' : 'We could not find any of this week\'s players in that picture. Pick your players below, or skip this step and send the screenshot to the AI with your file.';
+    const [image, worker] = await Promise.all([loadImage(file), loadReader()]);
+    // Each pass reads a different version of the picture. Stop as soon as nine players make a legal lineup.
+    const passes = [['gray', 1500, '3'], ['ink', 1500, '6'], ['gray', 2200, '11'], ['ink', 2200, '11'], ['ink', 1100, '4']];
+    const seen = new Map(), log = [];
+    let best = [];
+    for (const [mode, zoom, layout] of passes) {
+      await worker.setParameters({tessedit_pageseg_mode: layout});
+      const {data} = await worker.recognize(prepareImage(image, mode, zoom));
+      const found = playersInText(data.text);
+      log.push('--- ' + mode + ' ' + zoom + ' layout ' + layout + ': ' + found.length + ' players ---\n' + data.text);
+      for (const hit of found) if (!seen.has(hit.id)) seen.set(hit.id, hit.where);
+      if (found.length > best.length) best = found;
+      lineup = [...seen.entries()].sort((a, b) => a[1] - b[1]).map(([id]) => id);
+      if (lineupFacts().legal) break;
+      if (found.length === 9 && (lineup = found.map(hit => hit.id)) && lineupFacts().legal) break;
+      lineup = [...seen.entries()].sort((a, b) => a[1] - b[1]).map(([id]) => id);
+    }
+    lineup = lineup.slice(0, 14);
+    window.__shotText = log.join('\n');
+    const n = lineup.length;
+    shotNote = !n ? 'We could not find any of this week\'s players in that picture. Pick your players below, or skip this step and send the screenshot to the AI with your file.'
+      : n < 9 ? 'We could only read ' + n + ' of your 9 players. Add the missing ' + (9 - n === 1 ? 'one' : 'ones') + ' by name below.'
+      : n > 9 ? 'We found more than 9 players in that picture. Remove the ones that are not in your lineup.' : '';
     editing = true;
   } catch (error) {
     console.warn(error);
@@ -1610,6 +1664,11 @@ $('lineupList').onclick = event => {
 };
 $('clearLineup').onclick = () => { lineup = []; shotName = ''; shotNote = ''; editing = false; made = null; render(); };
 $('typeIt').onclick = () => { editing = true; render(); $('addPlayer').focus(); };
+// For the site owner: /rate/#debug adds a button that copies the raw text read from the last screenshot.
+$('copyRead').onclick = async () => { try { await navigator.clipboard.writeText(window.__shotText || 'Nothing read yet.'); toast('Copied what the page read.'); } catch { toast('This browser blocked copying.'); } };
+const showDebug = () => { $('copyRead').hidden = location.hash !== '#debug'; };
+window.addEventListener('hashchange', showDebug);
+showDebug();
 render();
 </script>
 </body>
